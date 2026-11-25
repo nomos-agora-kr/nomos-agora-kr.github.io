@@ -53,7 +53,6 @@ export function Hemicycle({
       <div className="hemi-canvas">
         <svg viewBox={`0 0 ${HEMI_W} ${HEMI_H}`} role="img" aria-label={`본회의장 ${members.length}석 좌석도`}>
           <defs>
-            <filter id="gray"><feColorMatrix type="saturate" values="0" /></filter>
             <clipPath id="seat-clip" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5" /></clipPath>
             <radialGradient id="floor" cx="50%" cy="100%" r="80%">
               <stop offset="0%" stopColor="#0c2a40" stopOpacity=".55" />
@@ -128,12 +127,15 @@ export function Hemicycle({
 }
 
 function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; border: string }) {
-  const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
   const isFailed = usePhotoFailures()
+  // 관련 없는 의원(dim)은 사진을 불러오지 않고 정당색 점으로만 표시 → 요청·렌더링 부담 감소
+  if (dim) {
+    return <circle r={r * 0.72} fill="#0d1c28" stroke={border} strokeWidth={Math.max(1.2, r * 0.18)} opacity={0.55} />
+  }
+  const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
   const src = photoSrc(m.photo)
   return (
     <g>
-    <g opacity={dim ? 0.3 : 1} filter={dim ? 'url(#gray)' : undefined}>
       {!isFailed(src) ? (
         <image
           href={src!}
@@ -143,13 +145,11 @@ function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; b
         />
       ) : (
         <>
-          <circle r={r} fill={dim ? '#18242e' : `color-mix(in srgb, ${border} 34%, #061423)`} />
+          <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
           <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
         </>
       )}
-    </g>
-      {/* 정당색 외곽선은 흑백 처리와 무관하게 유지 */}
-      <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} opacity={dim ? 0.7 : 1} />
+      <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
     </g>
   )
 }

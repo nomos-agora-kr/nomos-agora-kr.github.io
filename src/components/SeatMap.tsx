@@ -103,7 +103,7 @@ export function SeatMap({
         mode={mode}
       />
       {mode === 'profile' && statusOf && (
-        <p className="hint">선명한 사진 = {statuses?.filter((s) => s.vivid).map((s) => s.label).join('·')} · 흐린 사진 = 그 외. 외곽선 색은 정당입니다.</p>
+        <p className="hint">사진 = {statuses?.filter((s) => s.vivid).map((s) => s.label).join('·')} · 작은 점 = 그 외. 외곽선 색은 정당입니다.</p>
       )}
     </div>
   )

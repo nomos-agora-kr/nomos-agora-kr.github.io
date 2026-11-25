@@ -32,8 +32,8 @@ jobs:
     outputs:
       changed: ${{ steps.sync.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install requests==2.32.3
@@ -53,29 +53,35 @@ jobs:
           git commit -m "data: 열린국회정보 동기화 $(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M')" || exit 0
           git push
 
-  deploy:
+  build:
     needs: sync
     if: >-
       always() && (needs.sync.result == 'skipped' || needs.sync.result == 'success') &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || needs.sync.outputs.changed == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

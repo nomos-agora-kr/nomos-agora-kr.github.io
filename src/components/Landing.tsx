@@ -91,7 +91,10 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill, onOpenAgo
         <div className="lp-hero-text">
           <Typewriter blocks={HERO} onDone={() => setTyped(true)} />
           <div className={`lp-cta-wrap${typed ? ' show' : ''}`}>
-            <HudButton onClick={onExplore}>법안 둘러보기</HudButton>
+            <div className="lp-cta-pair">
+              <div><span className="lp-cta-lb">노모스</span><HudButton onClick={onExplore}>법안 둘러보기</HudButton></div>
+              <div><span className="lp-cta-lb">아고라</span><HudButton onClick={() => onOpenAgora(null)}>찬반 현황 보기</HudButton></div>
+            </div>
           </div>
         </div>
       </section>
@@ -197,7 +200,10 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill, onOpenAgo
           <li><strong>국회 공식 기록만 사용합니다.</strong><span>모든 수치와 기록의 출처는 국회 열린국회정보(open.assembly.go.kr)이며, 평일 09~19시 매시간 자동으로 갱신됩니다.</span></li>
           <li><strong>요약하거나 평가하지 않습니다.</strong><span>법안 내용을 해석하거나 의원을 평가하지 않습니다. 판단은 이용자의 몫입니다.</span></li>
         </ul>
-        <HudButton onClick={onExplore}>법안 둘러보기</HudButton>
+        <div className="lp-cta-pair">
+          <div><span className="lp-cta-lb">노모스</span><HudButton onClick={onExplore}>법안 둘러보기</HudButton></div>
+          <div><span className="lp-cta-lb">아고라</span><HudButton onClick={() => onOpenAgora(null)}>찬반 현황 보기</HudButton></div>
+        </div>
       </section>
     </div>
   )
@@ -216,7 +222,6 @@ function AgoraTop({ bills, onOpen }: { bills: BillIndexItem[]; onOpen: (id: stri
       {list.length === 0 ? (
         <div className="lp-agora-empty">
           <p>아직 오늘의 참여가 없어요. 첫 번째 한 표를 남겨 보세요.</p>
-          <button className="ghost-btn" onClick={() => onOpen(null)}>아고라로 가기 →</button>
         </div>
       ) : (
         <ol className="lp-top5">

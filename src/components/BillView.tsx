@@ -76,7 +76,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
         <div className="bill-head-top">
           <span className="card-overline">의안번호 {bill.no} · {bill.committee ?? '소관위 미정'}</span>
           <div className="bill-head-actions">
-            <button className="agora-link" onClick={onAgora}>아고라에서 찬반 보기 →</button>
+            <button className="agora-link" onClick={onAgora}>아고라에서 찬반 현황 보기</button>
             {bill.link && <a className="ext-link" href={bill.link} target="_blank" rel="noreferrer">의안정보시스템 원문 ↗</a>}
           </div>
         </div>

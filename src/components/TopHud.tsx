@@ -81,8 +81,8 @@ export function TopHud({ meta, total, pending, bills, members, partyColor, onOpe
         <div><span>마지막 갱신</span><b>{meta ? fmtDateTime(meta.updated) : '—'}</b></div>
         <button className="reset-btn" onClick={onReset} aria-label="본회의장 첫 화면으로" title="본회의장 첫 화면으로">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-            <path d="M19.6 12.4A7.6 7.6 0 1 1 16.9 6.2" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
-            <path d="M13.2 4.9l4.3 1.4-1.5 4.2" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M18.58 9.61 A7 7 0 1 1 9.38 5.51" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+            <path d="M13.27 3.94 L8.10 2.36 L10.65 8.66 Z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
           </svg>
         </button>
       </div>

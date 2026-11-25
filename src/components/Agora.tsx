@@ -148,7 +148,7 @@ export function AgoraBill({ bill, billId, onNomos }: BillProps) {
             {bill ? `의안번호 ${bill.no} · ${bill.committee ?? '소관위 미정'}` : '법안'}
             {bill && <span className={`stage-chip s-${bill.stage}`}>{STAGE_SHORT[bill.stage]}</span>}
           </span>
-          <button className="ghost-btn" onClick={onNomos}>법안 기록 보기 (노모스) →</button>
+          <button className="agora-link" onClick={onNomos}>노모스에서 법안 기록 보기</button>
         </div>
         <h1>{bill?.title ?? billId}</h1>
         {ready && <MyRecordStrip rec={rec} />}

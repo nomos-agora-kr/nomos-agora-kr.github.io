@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BillsIndexFile, CommitteesFile, Member, MembersFile } from './types'
 import { loadBill, loadBillsIndex, loadCommittees, loadMembers } from './lib/data'
-import { preloadPhotos, prefetchPhotosNow } from './lib/preload'
+import { MOBILE, preloadPhotos, prefetchPhotosNow } from './lib/preload'
 import { partyColor as pc } from './lib/format'
 import { navigate, useRoute } from './lib/router'
 import { TopHud } from './components/TopHud'
@@ -52,8 +52,9 @@ export default function App() {
 
   // C. 대시보드에 들어오면 전체 사진을 빠르게(6장씩) — 첫 화면에서 프로필 보기를 누르기 전에 최대한 확보
   useEffect(() => {
-    if (route.view === 'explore' && members.length) preloadPhotos(members.map((m) => m.photo), 6)
-  }, [route.view, members])
+    // 휴대폰에서 법안 화면을 볼 때는 그 법안에 필요한 사진만 (전체 299장은 본회의장 첫 화면에서)
+    if (route.view === 'explore' && members.length && !(MOBILE && route.bill)) preloadPhotos(members.map((m) => m.photo), 6)
+  }, [route.view, route.bill, members])
   // 법안을 열면 그 법안 사진이 최우선
   useEffect(() => { if (route.bill && cf) prefetchBill(route.bill) }, [route.bill, cf, prefetchBill])
 

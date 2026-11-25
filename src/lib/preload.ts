@@ -8,6 +8,8 @@ import { THUMB, markPhotoFailed, markPhotoLoaded, photoSrc, setThumb } from './p
  * - 같은 사진은 한 번만 요청, 데이터 절약 모드·2g 회선에서는 low 단계 생략
  */
 const done = new Set<string>()
+// 휴대폰(특히 아이폰 사파리·앱 안 브라우저)은 메모리 한도가 낮음
+export const MOBILE = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 820)
 
 /**
  * 원본 → 72×72 썸네일. 해독·축소를 브라우저 백그라운드(createImageBitmap)에서 처리해
@@ -22,6 +24,13 @@ async function makeThumb(src: string, img: HTMLImageElement): Promise<boolean> {
   c.width = c.height = THUMB
   const ctx = c.getContext('2d')
   if (!ctx) return false
+  if (MOBILE) {
+    // 휴대폰: 원본을 한 번만 해독해 바로 72px 로 그림. 별도 비트맵 사본(createImageBitmap)을 만들지 않음
+    // (아이폰 사파리는 크기 조절 옵션을 무시해 원본 크기 사본이 생겨 메모리가 크게 늘어남)
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, THUMB, THUMB)
+    setThumb(src, c)
+    return true
+  }
   try {
     await img.decode() // 해독은 브라우저 백그라운드 스레드에서
     const bmp = await createImageBitmap(img, sx, sy, side, side, { resizeWidth: THUMB, resizeHeight: THUMB, resizeQuality: 'high' })
@@ -37,9 +46,8 @@ async function makeThumb(src: string, img: HTMLImageElement): Promise<boolean> {
 const inflight = new Set<string>()
 let queue: string[] = []
 let maxParallel = 3
-// 휴대폰(특히 아이폰·앱 안 브라우저)은 메모리 한도가 낮아 동시에 해독하는 원본 수를 줄임
-const MOBILE = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 820)
-const CAP = MOBILE ? 3 : 6
+// 동시에 해독하는 원본 수: 휴대폰은 2장까지
+const CAP = MOBILE ? 2 : 6
 
 function slowNet(): boolean {
   const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection

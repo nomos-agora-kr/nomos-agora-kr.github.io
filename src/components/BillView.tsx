@@ -17,6 +17,8 @@ interface Props {
   selectedId: string | null
 }
 
+const CO_PREVIEW = 23
+
 const VOTE_STATUSES: StatusDef[] = (['Y', 'N', 'A', 'X'] as const).map((k) => ({
   key: k, label: VOTE_LABEL[k], color: VOTE_COLOR[k], vivid: k === 'Y',
 }))
@@ -31,12 +33,14 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
   const [bill, setBill] = useState<BillDetail | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [zoomOut, setZoomOut] = useState(false)
+  const [showAllCo, setShowAllCo] = useState(false)
 
   useEffect(() => {
     let alive = true
     setBill(null)
     setErr(null)
     setZoomOut(false)
+    setShowAllCo(false)
     loadBill(billId).then((b) => alive && setBill(b)).catch((e) => alive && setErr(String(e)))
     return () => { alive = false }
   }, [billId])
@@ -105,25 +109,27 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
         <div className="proposers-head">
           <span className="card-overline">발의자 {bill.lead.length + bill.co.length + bill.unmatched.length}명 · 대표 {bill.lead.length} · 공동 {bill.co.length + bill.unmatched.length}</span>
         </div>
-        <div className="proposer-row">
-          {leads.map((m) => (
-            <div className="proposer lead" key={m.id}>
-              <Avatar member={m} color={partyColor(m.party)} size={48} badge="대표" onClick={() => onSelect(m)} />
+        <div className="proposer-grid">
+          {[...leads.map((m) => [m, '대표'] as const), ...(showAllCo ? cos : cos.slice(0, CO_PREVIEW)).map((m) => [m, '공동'] as const)].map(([m, role]) => (
+            <div className={`proposer${role === '대표' ? ' lead' : ''}`} key={m.id}>
+              <Avatar member={m} color={partyColor(m.party)} size={56} badge={role} onClick={() => onSelect(m)} />
               <span>{m.name}</span>
               <small style={{ color: partyColor(m.party) }}>{m.party}</small>
             </div>
           ))}
-          <div className="co-chips">
-            {cos.map((m) => (
-              <button key={m.id} className="chip" style={{ borderColor: partyColor(m.party) }} onClick={() => onSelect(m)}>
-                {m.name}
-              </button>
-            ))}
-            {bill.unmatched.map((n) => (
-              <span key={n} className="chip unmatched" title="의원 코드와 매칭되지 않은 이름">{n}</span>
-            ))}
-          </div>
+          {bill.unmatched.map((n) => (
+            <div className="proposer unmatched" key={n} title="의원 코드와 매칭되지 않은 이름 (전직 의원 등)">
+              <span className="avatar-blank">?</span>
+              <span>{n}</span>
+              <small>확인 필요</small>
+            </div>
+          ))}
         </div>
+        {cos.length > CO_PREVIEW && (
+          <button className="ghost-btn more-co" onClick={() => setShowAllCo((v) => !v)}>
+            {showAllCo ? '접기' : `공동발의자 ${cos.length}명 모두 보기`}
+          </button>
+        )}
       </section>
 
       <section className="hud-panel stage-panel">

@@ -35,7 +35,7 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
           {initial}
         </span>
       )}
-      {badge && <em className="avatar-badge">{badge}</em>}
+      {badge && <em className={`avatar-badge${badge === '공동' ? ' sub' : ''}`}>{badge}</em>}
     </button>
   )
 }

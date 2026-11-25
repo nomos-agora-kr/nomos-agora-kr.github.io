@@ -116,8 +116,8 @@ export function Hemicycle({
           </div>
         )}
       </div>
-      <ul className="hemi-legend">
-        <li className="legend-title">좌석 배치 (왼쪽부터)</li>
+      <p className="legend-title">좌석 배치 순서 (왼쪽부터)</p>
+      <ul className="hemi-legend balanced">
         {groups.filter((g) => counts.get(g.key)).map((g) => (
           <li key={g.key}><i style={{ background: g.color }} />{g.label}<b>{counts.get(g.key)}</b></li>
         ))}

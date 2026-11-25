@@ -58,9 +58,14 @@ export function SeatMap({
     [groupBy, statusOf],
   )
 
+  const groupColor = useMemo(() => new Map(groups.map((g) => [g.key, g.color])), [groups])
   const dotColor = useCallback(
-    (m: Member) => (statusOf ? statusMap.get(statusOf(m))?.color ?? '#33485a' : partyColor(m.party)),
-    [statusOf, statusMap, partyColor],
+    (m: Member) => {
+      if (statusOf) return statusMap.get(statusOf(m))?.color ?? '#33485a'
+      // 상태가 없을 때는 현재 묶음 기준 색 (정당별=정당색, 상임위별=위원회색) → 범례와 일치
+      return groupColor.get(groupOf(m)) ?? partyColor(m.party)
+    },
+    [statusOf, statusMap, partyColor, groupColor, groupOf],
   )
   const isDim = useCallback((m: Member) => (statusOf ? !statusMap.get(statusOf(m))?.vivid : false), [statusOf, statusMap])
   const statusLabel = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.label ?? null : null), [statusOf, statusMap])
@@ -69,7 +74,7 @@ export function SeatMap({
     <div className="seatmap">
       <div className="seatmap-tools">
         <div className="seg" role="group" aria-label="보기 모드">
-          <button className={mode === 'dot' ? 'active' : ''} onClick={() => setMode('dot')}>점 보기</button>
+          <button className={mode === 'dot' ? 'active' : ''} onClick={() => setMode('dot')}>간략히 보기</button>
           <button className={mode === 'profile' ? 'active' : ''} onClick={() => setMode('profile')}>프로필 보기</button>
         </div>
         <div className="seg" role="group" aria-label="재정렬">

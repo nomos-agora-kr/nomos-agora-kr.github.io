@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { BillIndexItem, Stage } from '../types'
 import { STAGE_SHORT, daysSince } from '../lib/format'
 
@@ -25,25 +25,57 @@ export function BillList({ bills, selected, onOpen }: Props) {
   const [sort, setSort] = useState<Sort>('recent')
   const [limit, setLimit] = useState(PAGE)
   const [expanded, setExpanded] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const list = useMemo(() => {
-    const f = bills.filter((b) => filter === 'all' || b.stage === filter)
+    const k = q.replace(/\s+/g, '').toLowerCase()
+    const hit = (b: BillIndexItem) =>
+      !k || String(b.no).includes(k) ||
+      [b.title, b.summary ?? '', b.lead_name ?? '', b.committee ?? ''].some((t) => t.replace(/\s+/g, '').toLowerCase().includes(k))
+    const f = bills.filter((b) => (filter === 'all' || b.stage === filter) && hit(b))
     if (sort === 'stalled')
       return [...f].filter((b) => b.stage !== 'voted' && b.stage !== 'closed').sort((a, b) => a.stage_since.localeCompare(b.stage_since))
     return f
-  }, [bills, filter, sort])
+  }, [bills, filter, sort, q])
 
   return (
     <aside className={`hud-panel bill-list${selected && !expanded ? ' compact' : ''}`} aria-label="법안 목록">
       <div className="panel-section">
         <div className="list-head">
           <h2>법안 목록</h2>
+          <button
+            className={`icon-btn${searchOpen ? ' active' : ''}`}
+            aria-label="법안 검색"
+            aria-expanded={searchOpen}
+            onClick={() => {
+              setSearchOpen((v) => !v)
+              setExpanded(true)
+              if (searchOpen) setQ('')
+              else setTimeout(() => inputRef.current?.focus(), 0)
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="M15.5 15.5L21 21" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+          </button>
           {selected && (
             <button className="ghost-btn mobile-only" onClick={() => setExpanded((v) => !v)}>
               {expanded ? '목록 접기' : '목록 펼치기'}
             </button>
           )}
         </div>
+        {searchOpen && (
+          <div className="list-search">
+            <input
+              ref={inputRef}
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setLimit(PAGE) }}
+              placeholder="법안명·의안번호·발의자·위원회"
+              aria-label="법안 목록에서 검색"
+            />
+            {q && <button aria-label="검색어 지우기" onClick={() => setQ('')}>×</button>}
+          </div>
+        )}
         <div className="filter-chips">
           {FILTERS.map((f) => (
             <button key={f.key} className={filter === f.key ? 'active' : ''} onClick={() => { setFilter(f.key); setLimit(PAGE) }}>

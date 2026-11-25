@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { photoSrc, usePhotoSettled } from '../lib/photo'
+import { prefetchPhotosNow } from '../lib/preload'
 import type { Committee, Member } from '../types'
 import { Hemicycle, type SeatGroup } from './Hemicycle'
 
@@ -81,12 +82,12 @@ export function SeatMap({
   const statusLabel = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.label ?? null : null), [statusOf, statusMap])
 
   // 프로필 보기 수신 게이지: 사진으로 보여 줄 의원 기준
-  const settled = usePhotoSettled()
   const targets = useMemo(
     () => (mode === 'profile' ? members.filter((m) => !isDim(m)).map((m) => photoSrc(m.photo)).filter(Boolean) as string[] : []),
     [mode, members, isDim],
   )
-  const doneCount = targets.filter((t) => settled(t)).length
+  // 프로필 보기에 필요한 사진을 큐 맨 앞으로 (좌석은 받아진 사진만 붙임)
+  useEffect(() => { if (targets.length) prefetchPhotosNow(targets) }, [targets])
   return (
     <div className="seatmap">
       <div className="seatmap-tools">
@@ -95,7 +96,7 @@ export function SeatMap({
           <button className={mode === 'dot' ? 'active' : ''} onClick={() => setMode('dot')}>간략히 보기</button>
           <button className={mode === 'profile' ? 'active' : ''} onClick={() => setMode('profile')}>프로필 보기</button>
         </div>
-        {mode === 'profile' && <LoadGauge key={targets.length} done={doneCount} total={targets.length} />}
+        {mode === 'profile' && <LoadGauge key={targets.length} targets={targets} />}
         </div>
         <div className="seg" role="group" aria-label="재정렬">
           <button className={groupBy === 'party' ? 'active' : ''} onClick={() => setGroupBy('party')}>정당별</button>
@@ -140,7 +141,11 @@ export function SeatMap({
 }
 
 /** 프로필 수신 게이지: 처음부터 다 받아져 있으면 표시 안 함, 다 받으면 '수신 완료' 후 사라짐 */
-function LoadGauge({ done, total }: { done: number; total: number }) {
+function LoadGauge({ targets }: { targets: string[] }) {
+  // 도착 알림은 이 작은 컴포넌트만 받음 (좌석도 전체는 다시 그리지 않음)
+  const settled = usePhotoSettled()
+  const total = targets.length
+  const done = targets.reduce((n, t) => n + (settled(t) ? 1 : 0), 0)
   const startedIncomplete = useRef(done < total)
   const [phase, setPhase] = useState<'loading' | 'done' | 'hidden'>(done < total ? 'loading' : 'hidden')
   useEffect(() => {

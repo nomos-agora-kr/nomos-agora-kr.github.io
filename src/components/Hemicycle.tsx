@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '../types'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
-import { isPhotoLoaded, markPhotoFailed, markPhotoLoaded, photoSrc, usePhotoFailures } from '../lib/photo'
+import { isPhotoLoaded, markPhotoFailed, photoSrc, usePhotoBatches, usePhotoFailures } from '../lib/photo'
 
 export interface SeatGroup {
   key: string
@@ -29,7 +29,7 @@ interface Props {
   mode: 'dot' | 'profile'
 }
 
-export function Hemicycle({
+export const Hemicycle = memo(function Hemicycle({
   members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, dotStyle, haloOf, onSelect, selectedId, mode,
 }: Props) {
   const [hover, setHover] = useState<number | null>(null)
@@ -48,6 +48,25 @@ export function Hemicycle({
     members.forEach((m) => c.set(groupOf(m), (c.get(groupOf(m)) ?? 0) + 1))
     return c
   }, [members, groupOf])
+
+  // 빛 효과는 좌석도(SVG) 위 별도 레이어에서 처리 → 좌석도는 다시 그리지 않음 (GPU 합성)
+  const fxRef = useRef<HTMLDivElement>(null)
+  const flashAt = useCallback((x: number, y: number, rr: number) => {
+    const host = fxRef.current
+    if (!host || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const el = document.createElement('span')
+    el.className = 'seat-flash'
+    const size = ((rr * 2.6) / HEMI_W) * 100
+    el.style.left = `${(x / HEMI_W) * 100}%`
+    el.style.top = `${(y / HEMI_H) * 100}%`
+    el.style.width = `${size}%`
+    el.addEventListener('animationend', () => el.remove(), { once: true })
+    host.appendChild(el)
+  }, [])
+
+  // 프로필 보기: 사진은 미리받기 큐가 받고, 도착분을 0.3초마다 묶어서 좌석에 붙임
+  const batch = usePhotoBatches()
+  void batch
 
   const h = hover != null ? placed[hover] : null
   const r = placed[0]?.s.r ?? 10
@@ -89,7 +108,7 @@ export function Hemicycle({
                 ) : (
                   dim
                     ? <Dot r={s.r} fill={dotColor(m)} party={partyColor(m.party)} ring={dotStyle?.(m) === 'ring'} dim selected={sel} />
-                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} />
+                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} onArrive={() => flashAt(s.x, s.y, s.r)} />
                 )}
               </g>
             )
@@ -108,6 +127,9 @@ export function Hemicycle({
             </g>
           )}
         </svg>
+        <div className="hemi-fx" ref={fxRef} aria-hidden>
+          {mode === 'profile' && <span className="hemi-beam" />}
+        </div>
         {h && (
           <div
             className="hemi-tip"
@@ -132,7 +154,7 @@ export function Hemicycle({
       </ul>
     </div>
   )
-}
+})
 
 /** 간략히 보기 점: 속 = 상태 색, 테두리 = 정당색. ring 이면 속을 비우고 정당색 테두리를 굵게 */
 function Dot({ r, fill, party, ring, dim, selected }: { r: number; fill: string; party: string; ring: boolean; dim: boolean; selected: boolean }) {
@@ -148,29 +170,31 @@ function Dot({ r, fill, party, ring, dim, selected }: { r: number; fill: string;
   )
 }
 
-function SeatFace({ m, r, border, halo }: { m: Member; r: number; border: string; halo?: string }) {
+function SeatFace({ m, r, border, halo, onArrive }: { m: Member; r: number; border: string; halo?: string; onArrive?: () => void }) {
   const isFailed = usePhotoFailures()
   const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
   const src = photoSrc(m.photo)
-  // 이미 받아 둔 사진은 번쩍임 없이 바로, 새로 도착하면 점등 애니메이션
-  const [state, setState] = useState<'wait' | 'lit' | 'ready'>(() => (isPhotoLoaded(src) ? 'ready' : 'wait'))
+  const ready = isPhotoLoaded(src) // 부모가 0.3초 단위로 다시 그릴 때 반영
+  const wasReady = useRef(ready)
+  useEffect(() => {
+    // 이 화면에 있는 동안 새로 도착한 사진만 번쩍임
+    if (ready && !wasReady.current) { wasReady.current = true; onArrive?.() }
+  }, [ready, onArrive])
   const failed = isFailed(src)
   return (
-    <g className={`face ${failed ? 'ready' : state}`}>
-      {/* 이니셜을 먼저 그리고 사진은 그 위에 (불러오기 전·실패 시에도 빈 원이 안 남음) */}
+    <g>
+      {/* 이니셜을 먼저 그리고, 사진은 받아진 뒤에만 붙임 */}
       <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
       <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
-      {!failed && (
+      {ready && !failed && (
         <image
           href={src!}
-          onLoad={() => { markPhotoLoaded(src!); setState((v) => (v === 'wait' ? 'lit' : v)) }}
           onError={() => markPhotoFailed(src!)}
           x={-r} y={-r} width={r * 2} height={r * 2}
           clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMin slice"
         />
       )}
-      <circle className="ring" r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
-      <circle className="flash" r={r * 1.15} fill="none" stroke="#41d8ff" strokeWidth={Math.max(1.4, r * 0.22)} />
+      <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
       {halo && <circle r={r * 1.24} fill="none" stroke={halo} strokeWidth={Math.max(1.6, r * 0.26)} />}
     </g>
   )

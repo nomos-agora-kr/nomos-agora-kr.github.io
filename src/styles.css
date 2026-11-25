@@ -5,7 +5,7 @@
 :root {
   --bg-0: #01040b;
   --bg-1: #020711;
-  --panel: rgba(5, 17, 31, 0.78);
+  --panel: rgba(5, 17, 31, 0.9); /* 흐림(backdrop-filter) 대신 불투명도로 — 애니메이션 시 성능 */
   --panel-strong: rgba(4, 14, 27, 0.92);
   --line: rgba(60, 157, 210, 0.18);
   --line-soft: rgba(55, 147, 198, 0.12);
@@ -65,7 +65,6 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
-  backdrop-filter: blur(12px);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.02), 0 18px 40px rgba(0,0,0,.18);
 }
 .card-overline {
@@ -100,8 +99,7 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
   padding: 0 14px;
   border: 1px solid rgba(55, 154, 214, 0.18);
   border-radius: 12px;
-  background: rgba(4, 14, 27, 0.82);
-  backdrop-filter: blur(12px);
+  background: rgba(4, 14, 27, 0.94);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.018), 0 12px 28px rgba(0,0,0,.18);
   z-index: 30;
   flex: none;
@@ -599,16 +597,20 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .lp-stats-section { margin-top: 20px; }
 .lp-stats-section h2 { font-size: clamp(20px, 2.6vw, 24px); }
 
-/* 좌석 사진 점등 */
-.face image { opacity: 0; }
-.face.ready image { opacity: 1; }
-.face.lit image { animation: photo-in 450ms ease-out forwards; }
-.face .flash { opacity: 0; pointer-events: none; }
-.face.lit .flash { animation: seat-flash 900ms ease-out; transform-box: fill-box; transform-origin: center; }
-.face.wait .ring { animation: seat-wait 1.6s ease-in-out infinite; }
-@keyframes photo-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes seat-flash { 0% { opacity: .95; transform: scale(.85); } 100% { opacity: 0; transform: scale(1.35); } }
-@keyframes seat-wait { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+/* 빛 효과 레이어: 좌석도 위에 겹친 HTML, transform·opacity 만 애니메이션 (GPU 합성) */
+.hemi-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.seat-flash {
+  position: absolute; aspect-ratio: 1; border-radius: 50%; translate: -50% -50%;
+  border: 2px solid #41d8ff; box-shadow: 0 0 10px rgba(65,216,255,.8), inset 0 0 6px rgba(65,216,255,.5);
+  animation: seat-flash 750ms ease-out forwards; will-change: transform, opacity;
+}
+@keyframes seat-flash { 0% { opacity: 0; transform: scale(.7); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.35); } }
+.hemi-beam {
+  position: absolute; top: -10%; bottom: -10%; left: 0; width: 22%;
+  background: linear-gradient(90deg, transparent, rgba(65,216,255,.08) 40%, rgba(120,230,255,.28) 50%, rgba(65,216,255,.08) 60%, transparent);
+  transform: translateX(-120%); animation: beam-sweep 1400ms cubic-bezier(.4,0,.2,1) forwards; will-change: transform, opacity;
+}
+@keyframes beam-sweep { 0% { transform: translateX(-120%); opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(560%); opacity: 0; } }
 
 /* 수신 게이지 */
 .seatmap-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }

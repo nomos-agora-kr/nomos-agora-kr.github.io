@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BillIndexItem, Member, Meta } from '../types'
 import { STAGE_SHORT, daysSince, fmtDate, fmtDateTime } from '../lib/format'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
+import { preloadPhotos } from '../lib/preload'
+import { Typewriter, type TypeBlock } from './Typewriter'
 
 interface Props {
   meta: Meta | null
@@ -21,7 +23,28 @@ function refDate(meta: Meta | null): Date {
   return Number.isNaN(d.getTime()) ? new Date() : d
 }
 
-export function Landing({ meta, bills, members, partyColor, onExplore, onOpenBill }: Props) {
+const HERO: TypeBlock[] = [
+  {
+    tag: 'h1', speed: 95,
+    lines: [
+      [{ text: '법안에 올린 ' }, { text: '이름', accent: true }, { text: '은' }],
+      [{ text: '역사', accent: true }, { text: '에 남습니다.' }],
+    ],
+  },
+  {
+    tag: 'p', className: 'lp-lead', speed: 32,
+    lines: [
+      [{ text: '국회의원이 어떤 법안을 내고, 누가 심사하고, 어떻게 표결했는지' }],
+      [{ text: '국회 공식 기록 그대로 보여 드립니다.' }],
+    ],
+  },
+]
+
+export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) {
+  const [typed, setTyped] = useState(false)
+  // 랜딩 진입 시점부터 의원 사진을 낮은 우선순위로 미리 받아 둠
+  useEffect(() => { if (members.length) preloadPhotos(members.map((m) => m.photo)) }, [members])
+
   const ref = refDate(meta)
   const since = (iso: string) => ref.getTime() - new Date(`${iso}T00:00:00+09:00`).getTime()
 
@@ -50,13 +73,8 @@ export function Landing({ meta, bills, members, partyColor, onExplore, onOpenBil
     closed: bills.filter((b) => b.stage === 'closed').length,
   }), [bills])
 
-  const seats = useMemo(() => {
-    const order = new Map<string, number>()
-    members.forEach((m) => order.set(m.party, (order.get(m.party) ?? 0) + 1))
-    const sorted = [...members].sort((a, b) => (order.get(b.party)! - order.get(a.party)!) || a.party.localeCompare(b.party))
-    const pos = hemicycleSeats(sorted.length)
-    return sorted.map((m, i) => ({ c: partyColor(m.party), ...pos[i] }))
-  }, [members, partyColor])
+  // 배경 좌석도는 정당색 없이 단색 HUD 와이어프레임 (색 배치가 다른 상징으로 오해되지 않게)
+  const seats = useMemo(() => hemicycleSeats(members.length || 300), [members.length])
 
   return (
     <div className="landing">
@@ -64,17 +82,14 @@ export function Landing({ meta, bills, members, partyColor, onExplore, onOpenBil
       <section className="lp-hero">
         <svg className="lp-hemi" viewBox={`0 0 ${HEMI_W} ${HEMI_H}`} aria-hidden>
           {seats.map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r * 0.9} fill={s.c} style={{ animationDelay: `${(i % 60) * 18 + Math.floor(i / 60) * 90}ms` }} />
+            <circle key={i} cx={s.x} cy={s.y} r={s.r * 0.78} style={{ animationDelay: `${Math.round((1 - s.angle / Math.PI) * 1400 + s.row * 40)}ms` }} />
           ))}
         </svg>
         <div className="lp-hero-text">
-          <p className="lp-kicker">NOMOS · AGORA · 노모스, 아고라</p>
-          <h1>법안에 올린 이름은<br />역사에 남습니다.</h1>
-          <p className="lp-lead">
-            국회의원이 어떤 법안을 내고, 누가 심사하고, 어떻게 표결했는지 <br className="br-wide" />
-            국회 공식 기록 그대로 보여 드립니다.
-          </p>
-          <button className="lp-cta" onClick={onExplore}>법안 둘러보기 →</button>
+          <Typewriter blocks={HERO} onDone={() => setTyped(true)} />
+          <div className={`lp-cta-wrap${typed ? ' show' : ''}`}>
+            <HudButton onClick={onExplore}>법안 둘러보기</HudButton>
+          </div>
         </div>
       </section>
 
@@ -136,22 +151,22 @@ export function Landing({ meta, bills, members, partyColor, onExplore, onOpenBil
         <h2>법안은 이렇게 만들어져요</h2>
         <ol className="lp-steps">
           <li>
-            <span className="lp-step-no">1</span>
+            <span className="lp-step-no"><small>STEP</small>01</span>
             <strong>발의</strong>
             <p>의원 10명 이상이 이름을 올려 법안을 냅니다. 대표발의자 1명과 공동발의자로 나뉩니다.</p>
           </li>
           <li>
-            <span className="lp-step-no">2</span>
+            <span className="lp-step-no"><small>STEP</small>02</span>
             <strong>소관 상임위원회</strong>
             <p>분야별 위원회가 내용을 심사합니다. 대부분의 법안이 이 단계에 머물러 있습니다.</p>
           </li>
           <li>
-            <span className="lp-step-no">3</span>
+            <span className="lp-step-no"><small>STEP</small>03</span>
             <strong>법제사법위원회</strong>
             <p>다른 법과 충돌하지 않는지, 문구가 맞는지 체계·자구를 심사합니다.</p>
           </li>
           <li>
-            <span className="lp-step-no">4</span>
+            <span className="lp-step-no"><small>STEP</small>04</span>
             <strong>본회의</strong>
             <p>국회의원 전체가 표결합니다. 의원 한 명 한 명의 찬성·반대·기권이 기록됩니다.</p>
           </li>
@@ -177,9 +192,18 @@ export function Landing({ meta, bills, members, partyColor, onExplore, onOpenBil
           <li><strong>요약하거나 평가하지 않습니다.</strong><span>법안 내용을 해석하거나 의원을 평가하지 않습니다. 판단은 보시는 분의 몫입니다.</span></li>
           <li><strong>개인정보를 수집하지 않습니다.</strong><span>회원가입·로그인이 없고, 방문 분석·광고 추적 도구를 쓰지 않습니다.</span></li>
         </ul>
-        <button className="lp-cta" onClick={onExplore}>법안 둘러보기 →</button>
+        <HudButton onClick={onExplore}>법안 둘러보기</HudButton>
       </section>
     </div>
+  )
+}
+
+function HudButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button className="hud-cta" onClick={onClick}>
+      <span>{children}</span>
+      <svg viewBox="0 0 20 12" width="20" height="12" aria-hidden><path d="M0 6h17M12 1l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
+    </button>
   )
 }
 

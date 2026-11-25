@@ -37,12 +37,16 @@ export function fmtDate(iso: string): string {
   return iso.slice(0, 10).replaceAll('-', '.')
 }
 
+/** 2026.11.25 12:16 (KST) */
 export function fmtDateTime(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString('ko-KR', {
-    timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-  })
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(d).map((x) => [x.type, x.value]),
+  )
+  return `${p.year}.${p.month}.${p.day} ${p.hour}:${p.minute}`
 }
 
 /** 정당명 → 색. 사전에 없으면 이름 해시로 고정 색 생성 */

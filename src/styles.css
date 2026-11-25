@@ -300,7 +300,11 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .chip:hover { background: var(--active-bg); }
 .chip.unmatched { border-style: dashed; border-color: #7f98a9; color: #7892a5; }
 
-.stage-panel { padding: 16px 18px 18px; }
+.stage-panel { padding: 16px 18px 18px; overflow-x: clip; }
+.slide-view.from-right { animation: slide-from-right 340ms cubic-bezier(.22,1,.36,1); }
+.slide-view.from-left { animation: slide-from-left 340ms cubic-bezier(.22,1,.36,1); }
+@keyframes slide-from-right { from { transform: translateX(14%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slide-from-left { from { transform: translateX(-14%); opacity: 0; } to { transform: none; opacity: 1; } }
 .stage-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 
 /* avatar */

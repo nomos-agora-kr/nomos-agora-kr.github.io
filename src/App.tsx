@@ -92,7 +92,7 @@ export default function App() {
             <section className="overview">
               <div className="hero-title">
                 <p>NOMOS · AGORA</p>
-                <h1>법안에서 의원으로, 의원에서 법안으로.</h1>
+                <h1>법안에 올린 이름은 역사에 남습니다.</h1>
                 <span>공개된 국회 공식 기록을 그대로 보여줍니다. 왼쪽에서 법안을 고르거나, 좌석을 눌러 의원 기록 파일을 열어 보세요.</span>
               </div>
               <div className="hud-panel stage-panel">

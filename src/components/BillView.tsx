@@ -34,6 +34,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
   const [err, setErr] = useState<string | null>(null)
   const [zoomOut, setZoomOut] = useState(false)
   const [showAllCo, setShowAllCo] = useState(false)
+  const [touched, setTouched] = useState(false) // 첫 진입엔 애니메이션 없음
 
   useEffect(() => {
     let alive = true
@@ -41,6 +42,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
     setErr(null)
     setZoomOut(false)
     setShowAllCo(false)
+    setTouched(false)
     loadBill(billId).then((b) => alive && setBill(b)).catch((e) => alive && setErr(String(e)))
     return () => { alive = false }
   }, [billId])
@@ -155,10 +157,11 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
           <>
             <div className="stage-panel-head">
               <span className="card-overline">{zoomOut ? '본회의장 300석에서 보기' : '위원회 심사 테이블'}</span>
-              <button className="ghost-btn" onClick={() => setZoomOut((v) => !v)}>
-                {zoomOut ? '← 위원회 테이블로' : `${members.length}석 전체에서 보기`}
+              <button className="ghost-btn" onClick={() => { setTouched(true); setZoomOut((v) => !v) }}>
+                {zoomOut ? '← 위원회 테이블로' : '본회의장으로 →'}
               </button>
             </div>
+            <div key={zoomOut ? 'hemi' : 'cmt'} className={`slide-view ${zoomOut ? 'from-right' : touched ? 'from-left' : ''}`}>
             {zoomOut ? (
               <SeatMap
                 key={`p-${bill.id}`}
@@ -177,6 +180,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
             ) : (
               <p className="muted">아직 소관 위원회에 회부되지 않았습니다. 발의자 정보만 공개되어 있어요.</p>
             )}
+            </div>
           </>
         )}
       </section>

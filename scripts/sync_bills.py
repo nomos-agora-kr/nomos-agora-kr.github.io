@@ -39,8 +39,6 @@ API_BILLS = "nzmimeepazxkubdpn"        # 국회의원 발의법률안
 API_BILL_VOTE = "ncocpgfiaoituanbr"    # 의안별 본회의 표결현황
 API_MEMBER_VOTE = "nojepdqqaweusdfbi"  # 국회의원 본회의 표결정보
 API_ALL_MEMBER = "ALLNAMEMBER"         # 국회의원 정보 통합 (사진 URL 포함)
-PHOTO_DIR = ROOT / "public" / "photos"
-PHOTO_SIZE = 64
 
 # 정당 공식 색 (없는 정당은 프론트에서 이름 해시 색으로 대체)
 PARTY_COLORS = {
@@ -302,68 +300,29 @@ IMG_RE = re.compile(r"^https?://\S+\.(jpe?g|png|gif|webp)(\?\S*)?$", re.I)
 
 
 def _photo_url(row: dict) -> str | None:
-    """사진 필드명이 바뀌어도 동작하도록: NAAS_PIC 우선, 없으면 이미지 URL 값을 가진 아무 필드"""
-    for k in ("NAAS_PIC", "PHOTO", "IMG_URL"):
-        v = (row.get(k) or "").strip()
-        if v.startswith("http"):
-            return v
-    for v in row.values():
+    v = (row.get("NAAS_PIC") or "").strip()
+    if v.startswith("http"):
+        return v
+    for v in row.values():  # 필드명이 바뀐 경우 대비
         if isinstance(v, str) and IMG_RE.match(v.strip()):
             return v.strip()
     return None
 
 
-def attach_photos(api: Api, members: list[dict], force: bool = False) -> int:
-    """공식 프로필 사진을 64×64 WebP 로 저장하고 member['photo'] 경로를 채운다. 반환: 새로 저장한 수"""
+def attach_photos(api: Api, members: list[dict], prev: dict[str, str]) -> None:
+    """국회 공식 사진 URL(ALLNAMEMBER NAAS_PIC)만 기록. 파일은 받지 않고 브라우저가 직접 불러온다.
+    API 실패 시 이전 값 유지."""
+    pics: dict[str, str] = {}
     try:
-        from io import BytesIO
-        from PIL import Image
-    except ImportError:
-        print("  ! Pillow 미설치 — 사진 건너뜀")
-        return 0
-    PHOTO_DIR.mkdir(parents=True, exist_ok=True)
-    for m in members:  # 이미 받은 사진 연결
-        if (PHOTO_DIR / f"{m['id']}.webp").exists():
-            m["photo"] = f"photos/{m['id']}.webp"
-    todo = [m for m in members if force or not m.get("photo")]
-    if not todo:
-        return 0
-    try:
-        rows = api.all(API_ALL_MEMBER)
+        for r in api.all(API_ALL_MEMBER):
+            url = _photo_url(r)
+            if r.get("NAAS_CD") and url:
+                pics[r["NAAS_CD"]] = url
     except Exception as e:  # noqa: BLE001 — 사진 실패가 전체 수집을 막지 않게
-        print(f"  ! 통합 API 실패, 사진 건너뜀: {e}")
-        return 0
-    by_code = {r.get("NAAS_CD"): r for r in rows if r.get("NAAS_CD")}
-    by_name: dict[str, list[dict]] = {}
-    for r in rows:
-        by_name.setdefault((r.get("NAAS_NM") or "").strip(), []).append(r)
-    saved = 0
-    for m in todo:
-        row = by_code.get(m["id"])
-        if not row:
-            cands = [r for r in by_name.get(m["name"], []) if _photo_url(r)]
-            # 역대 의원 전체가 섞여 있으므로 이름만으로는 매칭하지 않음: 정당 이력의 마지막이 현재 정당인 행만 인정
-            cands = [r for r in cands if (r.get("PLPT_NM") or "").split("/")[-1].strip() == m["party"]]
-            row = cands[0] if len(cands) == 1 else None
-        url = _photo_url(row) if row else None
-        if not url:
-            continue
-        try:
-            r = api.s.get(url, timeout=20)
-            r.raise_for_status()
-            im = Image.open(BytesIO(r.content)).convert("RGB")
-            w, h = im.size  # 얼굴이 위쪽에 있는 증명사진 → 위쪽 기준 정사각형 크롭
-            side = min(w, h)
-            im = im.crop(((w - side) // 2, 0, (w - side) // 2 + side, side)).resize((PHOTO_SIZE, PHOTO_SIZE), Image.LANCZOS)
-            im.save(PHOTO_DIR / f"{m['id']}.webp", "WEBP", quality=80, method=6)
-            m["photo"] = f"photos/{m['id']}.webp"
-            saved += 1
-            time.sleep(0.05)
-        except Exception as e:  # noqa: BLE001
-            print(f"  ! 사진 실패 {m['name']}: {e}")
-    missing = sum(1 for m in members if not m.get("photo"))
-    print(f"  사진: 새로 저장 {saved}, 미확보 {missing} (통합 API 행 {len(rows)})")
-    return saved
+        print(f"  ! 통합 API 실패, 이전 사진 주소 유지: {e}")
+    for m in members:
+        m["photo"] = pics.get(m["id"]) or prev.get(m["id"])
+    print(f"  사진 주소: {sum(1 for m in members if m.get('photo'))}/{len(members)}")
 
 
 # ---------------------------------------------------------------- main
@@ -409,17 +368,18 @@ def main() -> int:
     if args.members or stale:
         print("[1/4] 의원·위원회 갱신")
         members, committees = sync_members(api)
-        attach_photos(api, members, force=args.members)
-        m_meta = {**meta_base, "members_updated": ts}
+        attach_photos(api, members, {m["id"]: m["photo"] for m in prev_members.get("members", []) if m.get("photo")})
+        m_meta = {**meta_base, "members_updated": ts, "photos_checked": ts}
         parties = {p: PARTY_COLORS[p] for p in sorted({m["party"] for m in members}) if p in PARTY_COLORS}
         changed += write_if_changed(OUT / "members.json", {"meta": m_meta, "parties": parties, "members": members}, ["updated"])
         changed += write_if_changed(OUT / "committees.json", {"meta": m_meta, "committees": committees}, ["updated"])
     else:
         print("[1/4] 의원·위원회: 최신 (건너뜀)")
         members = prev_members["members"]
-        # 사진이 없는 의원이 있으면 사진만 보충
-        if any(not m.get("photo") for m in members) and attach_photos(api, members):
-            changed += write_if_changed(OUT / "members.json", {**prev_members, "members": members}, ["updated"])
+        # 사진 주소를 아직 확인하지 않았으면 사진만 보충 (이후엔 주 1회 의원 갱신 때)
+        if not prev_meta.get("photos_checked"):
+            attach_photos(api, members, {})
+            changed += write_if_changed(OUT / "members.json", {**prev_members, "meta": {**prev_meta, "photos_checked": ts}, "members": members}, ["updated"])
     resolve = Resolver(members)
 
     # 2) 법안 목록 (전체 스캔 — 오래된 법안의 단계 변화도 잡기 위함)

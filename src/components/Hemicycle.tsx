@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Member } from '../types'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
+import { markPhotoFailed, photoSrc, usePhotoFailures } from '../lib/photo'
 
 export interface SeatGroup {
   key: string
@@ -128,12 +129,15 @@ export function Hemicycle({
 
 function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; border: string }) {
   const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
+  const isFailed = usePhotoFailures()
+  const src = photoSrc(m.photo)
   return (
     <g>
     <g opacity={dim ? 0.3 : 1} filter={dim ? 'url(#gray)' : undefined}>
-      {m.photo ? (
+      {!isFailed(src) ? (
         <image
-          href={`${import.meta.env.BASE_URL}${m.photo}`}
+          href={src!}
+          onError={() => markPhotoFailed(src!)}
           x={-r} y={-r} width={r * 2} height={r * 2}
           clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMid slice"
         />

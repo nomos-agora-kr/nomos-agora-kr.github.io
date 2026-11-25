@@ -1,0 +1,81 @@
+name: sync-and-deploy
+
+# 평일 09~19시(KST) 매시 5분: 법안·표결 증분 갱신 → 변경 있을 때만 재배포
+# 매주 월 06:30(KST): 의원·위원회 강제 갱신
+on:
+  schedule:
+    - cron: '5 0-10 * * 1-5'
+    - cron: '30 21 * * 0'
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      members:
+        description: '의원·위원회 강제 갱신'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests==2.32.3
+      - id: sync
+        env:
+          ASSEMBLY_API_KEY: ${{ secrets.ASSEMBLY_API_KEY }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.schedule }}" = "30 21 * * 0" ] || [ "${{ inputs.members }}" = "true" ]; then ARGS="--members"; fi
+          python scripts/sync_bills.py $ARGS
+      - name: Commit data
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git config user.name  "nomos-bot"
+          git config user.email "nomos-bot@users.noreply.github.com"
+          git add public/data
+          git commit -m "data: 열린국회정보 동기화 $(TZ=Asia/Seoul date +'%Y-%m-%d %H:%M')" || exit 0
+          git push
+
+  deploy:
+    needs: sync
+    if: >-
+      always() && (needs.sync.result == 'skipped' || needs.sync.result == 'success') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || needs.sync.outputs.changed == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -8,6 +8,7 @@ import { BillList } from './components/BillList'
 import { BillView } from './components/BillView'
 import { Dossier } from './components/Dossier'
 import { SeatMap, type StatusDef } from './components/SeatMap'
+import { Landing } from './components/Landing'
 
 const HL_STATUSES: StatusDef[] = [
   { key: 'hl', label: '검색한 지역구', color: '#e9f6ff', vivid: true },
@@ -39,6 +40,7 @@ export default function App() {
   const openBill = useCallback((id: string) => {
     navigate({ bill: id, member: null })
     document.querySelector('.main-stage')?.scrollTo({ top: 0 })
+    window.scrollTo({ top: 0 })
   }, [])
 
   if (error) {
@@ -62,8 +64,8 @@ export default function App() {
         partyColor={partyColor}
         onOpenBill={openBill}
         onOpenMember={openMember}
-        onDistrict={(ids, label) => { setHighlight({ ids: new Set(ids), label }); navigate({ bill: null, member: null }) }}
-        onHome={() => { setHighlight(null); navigate({ bill: null, member: null }) }}
+        onDistrict={(ids, label) => { setHighlight({ ids: new Set(ids), label }); navigate({ view: 'explore', bill: null, member: null }) }}
+        onHome={() => { setHighlight(null); navigate({ view: 'landing', bill: null, member: null }) }}
       />
       {meta?.sample && (
         <div className="sample-banner" role="note">
@@ -71,6 +73,21 @@ export default function App() {
         </div>
       )}
 
+      {route.view === 'landing' ? (
+        <main className="landing-scroll">
+          <Landing
+            meta={meta}
+            bills={bf?.bills ?? []}
+            members={members}
+            partyColor={partyColor}
+            onExplore={() => navigate({ view: 'explore', bill: null })}
+            onOpenBill={openBill}
+          />
+          <footer className="source-line">
+            출처: 열린국회정보(open.assembly.go.kr) · 본 사이트는 평가 없이 공개된 국회 공식 기록을 그대로 보여줍니다.
+          </footer>
+        </main>
+      ) : (
       <div className="workspace">
         <BillList bills={bf?.bills ?? []} selected={route.bill} onOpen={openBill} />
 
@@ -123,6 +140,7 @@ export default function App() {
           </footer>
         </main>
       </div>
+      )}
 
       <Dossier member={selectedMember} partyColor={partyColor} onClose={closeMember} onOpenBill={openBill} />
     </div>

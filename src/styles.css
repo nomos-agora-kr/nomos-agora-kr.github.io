@@ -240,7 +240,7 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .bill-head { padding: 20px 22px; }
 .bill-head-top { display: flex; justify-content: space-between; gap: 12px; }
 .ext-link { font-size: 14px; text-decoration: none; }
-.bill-head h1 { margin: 10px 0 8px; color: var(--text-strong); font-size: 26px; font-weight: 720; letter-spacing: -0.25px; line-height: 1.3; }
+.bill-head h1 { margin: 10px 0 18px; color: var(--text-strong); font-size: 26px; font-weight: 720; letter-spacing: -0.25px; line-height: 1.3; }
 .plain { margin: 0 0 20px; color: #a8c6d8; font-size: 17px; line-height: 1.6; }
 .plain::before { content: '쉽게 말하면 '; color: var(--accent); font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-right: 4px; }
 .plain.muted::before { content: none; }

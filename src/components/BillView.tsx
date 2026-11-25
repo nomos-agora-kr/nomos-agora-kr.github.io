@@ -77,7 +77,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
           {bill.link && <a className="ext-link" href={bill.link} target="_blank" rel="noreferrer">의안정보시스템 원문 ↗</a>}
         </div>
         <h1>{bill.title}</h1>
-        {bill.summary ? <p className="plain">{bill.summary}</p> : <p className="plain muted">쉬운 요약이 아직 등록되지 않았습니다.</p>}
+        {bill.summary && <p className="plain">{bill.summary}</p>}
 
         <ol className="progress" aria-label="진행 단계">
           {STAGE_ORDER.map((s, i) => {

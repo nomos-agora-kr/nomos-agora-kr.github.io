@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BillsIndexFile, CommitteesFile, Member, MembersFile } from './types'
-import { loadBillsIndex, loadCommittees, loadMembers } from './lib/data'
+import { loadBill, loadBillsIndex, loadCommittees, loadMembers } from './lib/data'
+import { preloadPhotos, prefetchPhotosNow } from './lib/preload'
 import { partyColor as pc } from './lib/format'
 import { navigate, useRoute } from './lib/router'
 import { TopHud } from './components/TopHud'
@@ -34,6 +35,24 @@ export default function App() {
   const parties = useMemo(() => mf?.parties ?? {}, [mf])
   const partyColor = useCallback((p: string) => pc(parties, p), [parties])
   const selectedMember = route.member ? byId.get(route.member) ?? null : null
+
+  // 법안의 발의자 + 현재 심사 위원회 위원 사진을 우선 받기
+  const prefetchBill = useCallback((id: string) => {
+    loadBill(id).then((b) => {
+      const ids = [...b.lead, ...b.co]
+      const cname = b.stage === 'judiciary' || b.stage === 'plenary' ? '법제사법위원회' : b.committee
+      const c = cf?.committees.find((x) => (b.committee_id && x.id === b.committee_id) || x.name === cname)
+      if (c) ids.push(...([c.chair, ...c.members].filter(Boolean) as string[]))
+      prefetchPhotosNow(ids.map((i) => byId.get(i)?.photo))
+    }).catch(() => {})
+  }, [byId, cf])
+
+  // C. 대시보드에 들어오면 전체 사진을 빠르게(6장씩) — 첫 화면에서 프로필 보기를 누르기 전에 최대한 확보
+  useEffect(() => {
+    if (route.view === 'explore' && members.length) preloadPhotos(members.map((m) => m.photo), 6)
+  }, [route.view, members])
+  // 법안을 열면 그 법안 사진이 최우선
+  useEffect(() => { if (route.bill && cf) prefetchBill(route.bill) }, [route.bill, cf, prefetchBill])
 
   const openMember = useCallback((m: Member) => navigate({ member: m.id }), [])
   const closeMember = useCallback(() => navigate({ member: null }), [])
@@ -89,7 +108,7 @@ export default function App() {
         </main>
       ) : (
       <div className="workspace">
-        <BillList bills={bf?.bills ?? []} selected={route.bill} onOpen={openBill} />
+        <BillList bills={bf?.bills ?? []} selected={route.bill} onOpen={openBill} onIntent={prefetchBill} />
 
         <main className="main-stage">
           {!mf || !cf || !bf ? (

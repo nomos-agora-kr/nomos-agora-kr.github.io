@@ -6,6 +6,8 @@ interface Props {
   bills: BillIndexItem[]
   selected: string | null
   onOpen: (id: string) => void
+  /** 곧 열 것 같은 법안 (마우스 올림·터치 시작·포커스) */
+  onIntent?: (id: string) => void
 }
 
 const FILTERS: { key: 'all' | Stage; label: string }[] = [
@@ -20,7 +22,7 @@ const FILTERS: { key: 'all' | Stage; label: string }[] = [
 type Sort = 'recent' | 'stalled'
 const PAGE = 60
 
-export function BillList({ bills, selected, onOpen }: Props) {
+export function BillList({ bills, selected, onOpen, onIntent }: Props) {
   const [filter, setFilter] = useState<'all' | Stage>('all')
   const [sort, setSort] = useState<Sort>('recent')
   const [limit, setLimit] = useState(PAGE)
@@ -94,7 +96,13 @@ export function BillList({ bills, selected, onOpen }: Props) {
           const pending = b.stage !== 'voted' && b.stage !== 'closed'
           return (
             <li key={b.id}>
-              <button className={selected === b.id ? 'active' : ''} onClick={() => { onOpen(b.id); setExpanded(false) }}>
+              <button
+                className={selected === b.id ? 'active' : ''}
+                onClick={() => { onOpen(b.id); setExpanded(false) }}
+                onMouseEnter={() => onIntent?.(b.id)}
+                onTouchStart={() => onIntent?.(b.id)}
+                onFocus={() => onIntent?.(b.id)}
+              >
                 <div className="bi-top">
                   <span className={`stage-chip s-${b.stage}`}>{STAGE_SHORT[b.stage]}</span>
                   {pending ? <em>{daysSince(b.stage_since)}일째</em> : <em className="res">{b.result ?? ''}</em>}

@@ -6,8 +6,10 @@ export interface StatusDef {
   key: string
   label: string
   color: string
-  /** 프로필 보기에서 선명하게 유지할지 */
+  /** 프로필 보기에서 사진을 보여줄지 */
   vivid: boolean
+  /** 간략히 보기 점 모양 (기본 fill) */
+  style?: 'fill' | 'ring' 
 }
 
 interface Props {
@@ -68,6 +70,7 @@ export function SeatMap({
     [statusOf, statusMap, partyColor, groupColor, groupOf],
   )
   const isDim = useCallback((m: Member) => (statusOf ? !statusMap.get(statusOf(m))?.vivid : false), [statusOf, statusMap])
+  const dotStyle = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.style ?? 'fill' : 'fill'), [statusOf, statusMap])
   const statusLabel = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.label ?? null : null), [statusOf, statusMap])
 
   return (
@@ -88,11 +91,16 @@ export function SeatMap({
         </div>
       </div>
       {statusOf && statuses && mode === 'dot' && (
+        <>
         <ul className="status-legend">
           {statuses.map((s) => (
-            <li key={s.key}><i style={{ background: s.color }} />{s.label}<b>{members.filter((m) => statusOf(m) === s.key).length}</b></li>
+            <li key={s.key}>
+              <i className={s.style === 'ring' ? 'ring' : ''} style={s.style === 'ring' ? undefined : { background: s.color }} />
+              {s.label}<b>{members.filter((m) => statusOf(m) === s.key).length}</b></li>
           ))}
         </ul>
+        <p className="hint legend-note">점 테두리 색 = 정당</p>
+        </>
       )}
       <Hemicycle
         members={members}
@@ -102,6 +110,7 @@ export function SeatMap({
         isDim={isDim}
         partyColor={partyColor}
         statusLabel={statusLabel}
+        dotStyle={dotStyle}
         onSelect={onSelect}
         selectedId={selectedId}
         mode={mode}

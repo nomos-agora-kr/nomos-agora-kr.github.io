@@ -20,13 +20,15 @@ interface Props {
   isDim: (m: Member) => boolean
   partyColor: (party: string) => string
   statusLabel?: (m: Member) => string | null
+  /** 간략히 보기 점 모양: fill(칠함) / ring(속 빈 원). 기본 fill */
+  dotStyle?: (m: Member) => 'fill' | 'ring'
   onSelect: (m: Member) => void
   selectedId?: string | null
   mode: 'dot' | 'profile'
 }
 
 export function Hemicycle({
-  members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, onSelect, selectedId, mode,
+  members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, dotStyle, onSelect, selectedId, mode,
 }: Props) {
   const [hover, setHover] = useState<number | null>(null)
 
@@ -81,7 +83,7 @@ export function Hemicycle({
                 aria-label={`${m.name} ${m.party} ${m.district}${statusLabel?.(m) ? ` ${statusLabel(m)}` : ''}`}
               >
                 {mode === 'dot' ? (
-                  <circle r={s.r} fill={dotColor(m)} stroke={sel ? '#fff' : 'none'} strokeWidth={2} />
+                  <Dot r={s.r} fill={dotColor(m)} party={partyColor(m.party)} ring={dotStyle?.(m) === 'ring'} dim={dim} selected={sel} />
                 ) : (
                   <SeatFace m={m} r={s.r} dim={dim} border={partyColor(m.party)} />
                 )}
@@ -93,7 +95,7 @@ export function Hemicycle({
             <g className="seat-zoom" transform={`translate(${h.s.x} ${h.s.y}) scale(2.4)`} pointerEvents="none">
               <circle r={r + 2} fill="#01040b" opacity=".7" />
               {mode === 'dot' ? (
-                <circle r={r} fill={dotColor(h.m)} stroke="#fff" strokeWidth={1} />
+                <Dot r={r} fill={dotColor(h.m)} party={partyColor(h.m.party)} ring={dotStyle?.(h.m) === 'ring'} dim={false} selected />
               ) : (
                 <SeatFace m={h.m} r={r} dim={isDim(h.m)} border={partyColor(h.m.party)} />
               )}
@@ -123,6 +125,20 @@ export function Hemicycle({
         ))}
       </ul>
     </div>
+  )
+}
+
+/** 간략히 보기 점: 속 = 상태 색, 테두리 = 정당색. ring 이면 속을 비우고 정당색 테두리를 굵게 */
+function Dot({ r, fill, party, ring, dim, selected }: { r: number; fill: string; party: string; ring: boolean; dim: boolean; selected: boolean }) {
+  return (
+    <>
+      {ring ? (
+        <circle r={r * 0.84} fill="#06121c" stroke={party} strokeWidth={r * 0.32} />
+      ) : (
+        <circle r={r * 0.9} fill={fill} stroke={party} strokeWidth={r * 0.2} strokeOpacity={dim ? 0.5 : 1} />
+      )}
+      {selected && <circle r={r * 1.08} fill="none" stroke="#fff" strokeWidth={1.6} />}
+    </>
   )
 }
 

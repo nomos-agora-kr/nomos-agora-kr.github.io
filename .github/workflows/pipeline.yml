@@ -77,6 +77,8 @@ jobs:
 
   deploy:
     needs: build
+    # sync 가 skipped 면 그 결과가 연쇄 전파되므로, build 성공 여부만 보고 실행
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:

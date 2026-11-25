@@ -32,7 +32,7 @@ const HERO: TypeBlock[] = [
     ],
   },
   {
-    tag: 'p', className: 'lp-lead', speed: 32,
+    tag: 'p', className: 'lp-lead', speed: 95,
     lines: [
       [{ text: '국회의원이 어떤 법안을 내고, 누가 심사하고, 어떻게 표결했는지' }],
       [{ text: '국회 공식 기록 그대로 보여 드립니다.' }],

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { photoSrc, usePhotoSettled } from '../lib/photo'
 import { prefetchPhotosNow } from '../lib/preload'
+import { setScanProgress } from '../lib/scan'
 import type { Committee, Member } from '../types'
 import { Hemicycle, type SeatGroup } from './Hemicycle'
 
@@ -39,7 +40,7 @@ export function SeatMap({
   // 프로필 보기 연출: 들어올 때마다 스캔부터 다시
   const [photoPhase, setPhotoPhase] = useState<'scan' | 'show'>('scan')
   const [runId, setRunId] = useState(0)
-  const enterProfile = () => { setPhotoPhase('scan'); setRunId((n) => n + 1); setMode('profile') }
+  const enterProfile = () => { setScanProgress(0); setPhotoPhase('scan'); setRunId((n) => n + 1); setMode('profile') }
   const [groupBy, setGroupBy] = useState<GroupBy>(statusOf ? defaultGroup : 'party')
   const statusMap = useMemo(() => new Map((statuses ?? []).map((s) => [s.key, s])), [statuses])
 
@@ -170,6 +171,9 @@ function LoadGauge({ targets, onReveal }: { targets: string[]; onReveal: () => v
     let raf = requestAnimationFrame(function tick(t) { setNow(t); raf = requestAnimationFrame(tick) })
     return () => cancelAnimationFrame(raf)
   }, [phase])
+
+  // 좌석 점등 레이어에 진행률 전달 (게이지와 같은 속도로 켜짐)
+  useEffect(() => { if (total) setScanProgress(shown / total) }, [shown, total])
 
   useEffect(() => {
     if (phase !== 'loading' || total === 0 || shown < total) return

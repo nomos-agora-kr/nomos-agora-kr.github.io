@@ -599,12 +599,12 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 
 /* 프로필 보기 연출 레이어: 좌석도 위에 겹친 별도 레이어, 통째로 transform·opacity 만 애니메이션 */
 .hemi-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.halo-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: opacity; }
-.halo-layer circle { fill: none; stroke: #41d8ff; stroke-width: 2.2; filter: drop-shadow(0 0 3px rgba(65,216,255,.9)); }
-.hemi-fx.scanning .halo-layer { animation: halo-blink 1.1s ease-in-out infinite; }
-.hemi-fx.revealed .halo-layer { animation: halo-out 900ms ease-out forwards; }
-@keyframes halo-blink { 0%, 100% { opacity: .15; } 50% { opacity: .85; } }
-@keyframes halo-out { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* 램프 레이어: 스캔 동안 사진 좌석을 덮고, 진행률만큼 무작위로 켜짐 → 공개 순간 사라짐 */
+.lamp-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: opacity; }
+.lamp-layer circle { fill: #0d1c28; stroke: #28536b; stroke-width: 1.4; transition: fill 260ms ease, stroke 260ms ease; }
+.lamp-layer circle.on { fill: #cfe9f5; stroke: #41d8ff; stroke-width: 2.4; }
+.hemi-fx.revealed .lamp-layer { animation: lamp-out 700ms ease-out forwards; }
+@keyframes lamp-out { 0% { opacity: 1; } 100% { opacity: 0; } }
 .hemi-beam {
   position: absolute; top: -10%; bottom: -10%; left: 0; width: 26%;
   background: linear-gradient(90deg, transparent, rgba(65,216,255,.06) 35%, rgba(120,230,255,.30) 50%, rgba(65,216,255,.06) 65%, transparent);

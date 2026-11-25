@@ -3,6 +3,7 @@ import type { Member } from '../types'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
 import { getThumb, photoSrc, usePhotoBatches } from '../lib/photo'
 import { ThumbCanvas } from './ThumbCanvas'
+import { subscribeScan } from '../lib/scan'
 
 export interface SeatGroup {
   key: string
@@ -124,12 +125,8 @@ export const Hemicycle = memo(function Hemicycle({
         {mode === 'profile' && <PhotoLayer seats={photoSeats} show={showPhotos} />}
         {mode === 'profile' && (
           <div className={`hemi-fx ${scanning ? 'scanning' : 'revealed'}`} aria-hidden>
-            {/* 사진이 나올 좌석들의 HALO — 레이어 하나를 통째로 깜빡임 (좌석도는 다시 그리지 않음) */}
-            <svg className="halo-layer" viewBox={`0 0 ${HEMI_W} ${HEMI_H}`}>
-              {placed.filter(({ m }) => !isDim(m)).map(({ m, s }) => (
-                <circle key={m.id} cx={s.x} cy={s.y} r={s.r * 1.16} />
-              ))}
-            </svg>
+            {/* 사진이 나올 좌석들을 덮는 램프 레이어: 진행률만큼 무작위 순서로 원 전체가 켜짐 */}
+            <LampLayer seats={photoSeats} active={scanning} />
             {scanning && <span className="hemi-beam" />}
           </div>
         )}
@@ -186,6 +183,32 @@ function SeatFace({ m, r, border, halo }: { m: Member; r: number; border: string
       <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
       {halo && <circle r={r * 1.24} fill="none" stroke={halo} strokeWidth={Math.max(1.6, r * 0.26)} />}
     </g>
+  )
+}
+
+/**
+ * 스캔 중 램프: 좌석을 어두운 원으로 덮고, 진행률에 따라 무작위 순서로 환하게 켬.
+ * 진행률은 외부 저장소를 직접 구독해 해당 원의 class 만 바꿈 (React 재렌더·좌석도 재그리기 없음).
+ */
+function LampLayer({ seats, active }: { seats: PhotoSeat[]; active: boolean }) {
+  const ref = useRef<SVGSVGElement>(null)
+  useEffect(() => {
+    const svg = ref.current
+    if (!svg || !active) return
+    const els = Array.from(svg.querySelectorAll('circle'))
+    // 켜지는 순서를 무작위로 섞음 (실행할 때마다 다르게)
+    for (let i = els.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [els[i], els[j]] = [els[j], els[i]] }
+    els.forEach((el) => el.classList.remove('on'))
+    let lit = 0
+    return subscribeScan((f) => {
+      const n = Math.min(els.length, Math.round(f * els.length))
+      for (; lit < n; lit++) els[lit].classList.add('on')
+    })
+  }, [active, seats])
+  return (
+    <svg ref={ref} className="lamp-layer" viewBox={`0 0 ${HEMI_W} ${HEMI_H}`}>
+      {seats.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={s.r * 1.12} />)}
+    </svg>
   )
 }
 

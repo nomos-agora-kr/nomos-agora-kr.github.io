@@ -187,11 +187,11 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) 
 
       {/* 5. 원칙 */}
       <section className="lp-section lp-principles">
-        <h2>이 사이트의 원칙</h2>
+        <h2>노모스, 아고라는 아래의 원칙을 지킵니다.</h2>
         <ul>
-          <li><strong>공식 기록만 씁니다.</strong><span>모든 수치와 기록의 출처는 국회 열린국회정보(open.assembly.go.kr)이며, 평일 09~19시 매시간 자동으로 갱신됩니다.</span></li>
-          <li><strong>요약하거나 평가하지 않습니다.</strong><span>법안 내용을 해석하거나 의원을 평가하지 않습니다. 판단은 보시는 분의 몫입니다.</span></li>
-          <li><strong>개인정보를 수집하지 않습니다.</strong><span>회원가입·로그인이 없고, 방문 분석·광고 추적 도구를 쓰지 않습니다.</span></li>
+          <li><strong>국회 공식 기록만 사용합니다.</strong><span>모든 수치와 기록의 출처는 국회 열린국회정보(open.assembly.go.kr)이며, 평일 09~19시 매시간 자동으로 갱신됩니다.</span></li>
+          <li><strong>요약하거나 평가하지 않습니다.</strong><span>법안 내용을 해석하거나 의원을 평가하지 않습니다. 판단은 이용자의 몫입니다.</span></li>
+          <li><strong>개인정보를 수집하지 않습니다.</strong><span>회원가입·로그인·방문 분석·광고 추적 도구를 사용하지 않습니다.</span></li>
         </ul>
         <HudButton onClick={onExplore}>법안 둘러보기</HudButton>
       </section>

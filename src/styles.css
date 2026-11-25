@@ -547,8 +547,6 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .lp-principles li { padding: 22px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .lp-principles strong { display: block; margin-bottom: 8px; color: #fff; font-size: 19px; }
 .lp-principles span { color: #c3d6e2; font-size: 16px; line-height: 1.65; }
-.lp-principles { text-align: center; }
-.lp-principles li { text-align: left; }
 @media (max-width: 900px) {
   .landing-scroll { overflow: visible; }
   .lp-feed, .lp-principles ul { grid-template-columns: 1fr; }

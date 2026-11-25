@@ -1,7 +1,8 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { Member } from '../types'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
-import { isPhotoLoaded, markPhotoFailed, photoSrc, usePhotoBatches, usePhotoFailures } from '../lib/photo'
+import { getThumb, photoSrc, usePhotoBatches } from '../lib/photo'
+import { ThumbCanvas } from './ThumbCanvas'
 
 export interface SeatGroup {
   key: string
@@ -53,10 +54,13 @@ export const Hemicycle = memo(function Hemicycle({
 
   const scanning = mode === 'profile' && photoPhase === 'scan'
   const showPhotos = mode === 'profile' && photoPhase === 'show'
+  const photoSeats = useMemo<PhotoSeat[]>(
+    () => (mode === 'profile'
+      ? placed.filter(({ m }) => !isDim(m)).map(({ m, s }) => ({ x: s.x, y: s.y, r: s.r, src: photoSrc(m.photo), border: partyColor(m.party), halo: haloOf?.(m) }))
+      : []),
+    [mode, placed, isDim, partyColor, haloOf],
+  )
 
-  // 프로필 보기: 사진은 미리받기 큐가 받고, 도착분을 0.3초마다 묶어서 좌석에 붙임
-  const batch = usePhotoBatches()
-  void batch
 
   const h = hover != null ? placed[hover] : null
   const r = placed[0]?.s.r ?? 10
@@ -98,13 +102,13 @@ export const Hemicycle = memo(function Hemicycle({
                 ) : (
                   dim
                     ? <Dot r={s.r} fill={dotColor(m)} party={partyColor(m.party)} ring={dotStyle?.(m) === 'ring'} dim selected={sel} />
-                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} showPhoto={showPhotos} />
+                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} />
                 )}
               </g>
             )
           })}
           {/* 호버 확대: 레이아웃을 밀지 않고 맨 위 레이어에 다시 그림 */}
-          {h && (
+          {h && !(mode === 'profile' && !isDim(h.m)) && (
             <g className="seat-zoom" transform={`translate(${h.s.x} ${h.s.y}) scale(2.4)`} pointerEvents="none">
               <circle r={r + 2} fill="#01040b" opacity=".7" />
               {mode === 'dot' ? (
@@ -112,11 +116,12 @@ export const Hemicycle = memo(function Hemicycle({
               ) : (
                 isDim(h.m)
                   ? <Dot r={r} fill={dotColor(h.m)} party={partyColor(h.m.party)} ring={dotStyle?.(h.m) === 'ring'} dim={false} selected />
-                  : <SeatFace m={h.m} r={r} border={partyColor(h.m.party)} halo={haloOf?.(h.m)} showPhoto={showPhotos} />
+                  : <SeatFace m={h.m} r={r} border={partyColor(h.m.party)} halo={haloOf?.(h.m)} />
               )}
             </g>
           )}
         </svg>
+        {mode === 'profile' && <PhotoLayer seats={photoSeats} show={showPhotos} />}
         {mode === 'profile' && (
           <div className={`hemi-fx ${scanning ? 'scanning' : 'revealed'}`} aria-hidden>
             {/* 사진이 나올 좌석들의 HALO — 레이어 하나를 통째로 깜빡임 (좌석도는 다시 그리지 않음) */}
@@ -137,6 +142,9 @@ export const Hemicycle = memo(function Hemicycle({
               transform: `translate(-50%, ${h.s.y < 140 ? '34px' : 'calc(-100% - 34px)'})`,
             }}
           >
+            {mode === 'profile' && getThumb(photoSrc(h.m.photo)) && (
+              <span className="tip-photo"><ThumbCanvas thumb={getThumb(photoSrc(h.m.photo))!} size={56} /></span>
+            )}
             <strong>{h.m.name}</strong>
             <span><i style={{ background: partyColor(h.m.party) }} />{h.m.party}</span>
             <span>{h.m.district}</span>
@@ -168,27 +176,62 @@ function Dot({ r, fill, party, ring, dim, selected }: { r: number; fill: string;
   )
 }
 
-function SeatFace({ m, r, border, halo, showPhoto }: { m: Member; r: number; border: string; halo?: string; showPhoto: boolean }) {
-  const isFailed = usePhotoFailures()
+function SeatFace({ m, r, border, halo }: { m: Member; r: number; border: string; halo?: string }) {
   const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
-  const src = photoSrc(m.photo)
-  const ready = isPhotoLoaded(src) // 부모가 0.3초 단위로 다시 그릴 때 반영
-  const failed = isFailed(src)
   return (
     <g>
-      {/* 이니셜을 먼저 그리고, 공개 단계에서 받아진 사진만 붙임 */}
+      {/* 이니셜·테두리만 SVG 로. 사진은 위의 캔버스 레이어(PhotoLayer)가 한 번에 그림 */}
       <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
       <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
-      {showPhoto && ready && !failed && (
-        <image
-          href={src!}
-          onError={() => markPhotoFailed(src!)}
-          x={-r} y={-r} width={r * 2} height={r * 2}
-          clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMin slice"
-        />
-      )}
       <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
       {halo && <circle r={r * 1.24} fill="none" stroke={halo} strokeWidth={Math.max(1.6, r * 0.26)} />}
     </g>
   )
+}
+
+interface PhotoSeat { x: number; y: number; r: number; src: string | null; border: string; halo?: string }
+
+/** 썸네일 캐시로 사진 좌석을 캔버스 한 장에 그림 — 네트워크 재요청 없이 '한 번에' 공개 */
+function PhotoLayer({ seats, show }: { seats: PhotoSeat[]; show: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const batch = usePhotoBatches() // 늦게 도착한 썸네일 반영
+  const [size, setSize] = useState(0)
+  useEffect(() => {
+    const c = ref.current
+    if (!c) return
+    const ro = new ResizeObserver(([e]) => setSize(Math.round(e.contentRect.width)))
+    ro.observe(c)
+    return () => ro.disconnect()
+  }, [])
+  useEffect(() => {
+    const c = ref.current
+    if (!c || !size) return
+    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const k = (size / HEMI_W) * dpr
+    c.width = Math.round(size * dpr)
+    c.height = Math.round((size * HEMI_H / HEMI_W) * dpr)
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, c.width, c.height)
+    if (!show) return
+    ctx.imageSmoothingQuality = 'high'
+    for (const s of seats) {
+      const t = getThumb(s.src)
+      if (!t) continue
+      const x = s.x * k, y = s.y * k, r = s.r * k
+      ctx.save()
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip()
+      ctx.drawImage(t, x - r, y - r, r * 2, r * 2)
+      ctx.restore()
+      ctx.lineWidth = Math.max(1.4, s.r * 0.2) * k
+      ctx.strokeStyle = s.border
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke()
+      if (s.halo) {
+        ctx.lineWidth = Math.max(1.6, s.r * 0.26) * k
+        ctx.strokeStyle = s.halo
+        ctx.beginPath(); ctx.arc(x, y, r * 1.24, 0, Math.PI * 2); ctx.stroke()
+      }
+    }
+  }, [seats, show, size, batch])
+  return <canvas ref={ref} className="photo-layer" aria-hidden />
 }

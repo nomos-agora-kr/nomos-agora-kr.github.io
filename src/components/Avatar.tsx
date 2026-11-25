@@ -1,5 +1,6 @@
 import type { Member } from '../types'
-import { markPhotoFailed, markPhotoLoaded, photoSrc, usePhotoFailures } from '../lib/photo'
+import { getThumb, markPhotoFailed, photoSrc, usePhotoBatches, usePhotoFailures } from '../lib/photo'
+import { ThumbCanvas } from './ThumbCanvas'
 
 interface Props {
   member: Member
@@ -16,6 +17,8 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
   const initial = member.name.slice(1, 2) || member.name.slice(0, 1)
   const isFailed = usePhotoFailures()
   const src = photoSrc(member.photo)
+  usePhotoBatches() // 썸네일이 준비되면 다시 그림
+  const thumb = getThumb(src)
   return (
     <button
       type="button"
@@ -30,11 +33,13 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
         <span className="avatar-initial" style={{ background: `color-mix(in srgb, ${color} 26%, #061423)` }}>
           {initial}
         </span>
-        {!isFailed(src) && (
+        {thumb ? (
+          <ThumbCanvas thumb={thumb} size={size} className="avatar-thumb" />
+        ) : !isFailed(src) && (
           <img
             src={src!} alt={`${member.name} 의원 공식 사진`} width={size} height={size}
             referrerPolicy="no-referrer"
-            onLoad={(e) => { e.currentTarget.classList.add('loaded'); markPhotoLoaded(src!) }}
+            onLoad={(e) => e.currentTarget.classList.add('loaded')}
             onError={() => markPhotoFailed(src!)}
           />
         )}

@@ -1,4 +1,4 @@
-import { markPhotoFailed, markPhotoLoaded, photoSrc } from './photo'
+import { THUMB, markPhotoFailed, markPhotoLoaded, photoSrc, setThumb } from './photo'
 
 /**
  * 의원 사진 우선순위 큐
@@ -8,6 +8,19 @@ import { markPhotoFailed, markPhotoLoaded, photoSrc } from './photo'
  * - 같은 사진은 한 번만 요청, 데이터 절약 모드·2g 회선에서는 low 단계 생략
  */
 const done = new Set<string>()
+
+function makeThumb(src: string, img: HTMLImageElement) {
+  const w = img.naturalWidth, h = img.naturalHeight
+  if (!w || !h) return
+  const c = document.createElement('canvas')
+  c.width = c.height = THUMB
+  const ctx = c.getContext('2d')
+  if (!ctx) return
+  const side = Math.min(w, h)
+  // 세로로 긴 증명사진 → 얼굴이 있는 위쪽 기준으로 정사각형 자르기
+  ctx.drawImage(img, (w - side) / 2, (h - side) * 0.12, side, side, 0, 0, THUMB, THUMB)
+  setThumb(src, c)
+}
 const inflight = new Set<string>()
 let queue: string[] = []
 let maxParallel = 3
@@ -34,6 +47,7 @@ function pump() {
     const finish = (ok: boolean) => {
       inflight.delete(src)
       done.add(src)
+      if (ok && img) makeThumb(src, img)
       if (ok) markPhotoLoaded(src)
       else markPhotoFailed(src)
       if (img) { img.onload = img.onerror = null; img = null }

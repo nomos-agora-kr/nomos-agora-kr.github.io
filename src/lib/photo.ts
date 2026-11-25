@@ -61,3 +61,16 @@ loadSubs.add(() => {
 export function usePhotoBatches(): number {
   return useSyncExternalStore((cb) => { slowSubs.add(cb); return () => slowSubs.delete(cb) }, () => slowVer)
 }
+
+/**
+ * 클라이언트 썸네일 캐시
+ * 국회 서버가 사진의 재사용(캐시)을 허용하지 않아, 같은 사진을 화면에서 쓸 때마다 다시 내려받게 됨.
+ * 그래서 받은 순간 72×72 로 줄여 메모리에 보관하고, 화면은 이 썸네일로 바로 그림 (299장 ≈ 6MB).
+ * '도착(loaded)' = 썸네일 준비 완료.
+ */
+export const THUMB = 72
+const thumbs = new Map<string, HTMLCanvasElement>()
+export function setThumb(src: string, c: HTMLCanvasElement) { thumbs.set(src, c) }
+export function getThumb(src: string | null): HTMLCanvasElement | undefined {
+  return src ? thumbs.get(src) : undefined
+}

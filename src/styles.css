@@ -586,7 +586,7 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 }
 .hud-cta:hover svg { transform: translateX(3px); }
 .hud-cta:focus-visible { outline: 2px solid #41d8ff; outline-offset: 4px; }
-.lp-cta-wrap { margin-top: 34px; opacity: 0; transform: translateY(6px); transition: opacity 400ms ease, transform 400ms ease; pointer-events: none; }
+.lp-cta-wrap { margin-top: 34px; opacity: 0; transform: translateY(6px); transition: opacity 800ms ease, transform 800ms ease; pointer-events: none; }
 .lp-cta-wrap.show { opacity: 1; transform: none; pointer-events: auto; }
 
 /* 타이핑 */

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import type { BillIndexItem, Member, Meta } from '../types'
 import { STAGE_SHORT, daysSince, fmtDate, fmtDateTime } from '../lib/format'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
@@ -198,19 +198,44 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) 
   )
 }
 
+/** 화면에 보일 때 0 → value 로 1.6초간 올라가는 숫자 (동작 줄이기 설정이면 바로 표시) */
+function useCountUp(value: number): [RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null)
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !value) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setN(value); return }
+    let raf = 0
+    const run = () => {
+      const t0 = performance.now(), dur = 1600
+      const tick = (t: number) => {
+        const k = Math.min(1, (t - t0) / dur)
+        setN(Math.round(value * (1 - Math.pow(1 - k, 3))))
+        if (k < 1) raf = requestAnimationFrame(tick)
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); run() } }, { threshold: 0.4 })
+    io.observe(el)
+    return () => { io.disconnect(); cancelAnimationFrame(raf) }
+  }, [value])
+  return [ref, n]
+}
+
 function HudButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
     <button className="hud-cta" onClick={onClick}>
       <span>{children}</span>
-      <svg viewBox="0 0 20 12" width="20" height="12" aria-hidden><path d="M0 6h17M12 1l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
     </button>
   )
 }
 
 function Stat({ label, value, unit = '건' }: { label: string; value: number; unit?: string }) {
+  const [ref, shown] = useCountUp(value)
   return (
-    <div className="lp-stat">
-      <b>{value.toLocaleString()}<small>{unit}</small></b>
+    <div className="lp-stat" ref={ref}>
+      <b>{shown.toLocaleString()}<small>{unit}</small></b>
       <span>{label}</span>
     </div>
   )

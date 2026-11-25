@@ -1,4 +1,4 @@
-import { markPhotoFailed, photoSrc } from './photo'
+import { markPhotoFailed, markPhotoLoaded, photoSrc } from './photo'
 
 /**
  * 의원 사진 우선순위 큐
@@ -34,7 +34,8 @@ function pump() {
     const finish = (ok: boolean) => {
       inflight.delete(src)
       done.add(src)
-      if (!ok) markPhotoFailed(src)
+      if (ok) markPhotoLoaded(src)
+      else markPhotoFailed(src)
       if (img) { img.onload = img.onerror = null; img = null }
       pump()
     }

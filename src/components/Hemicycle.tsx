@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Member } from '../types'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
-import { markPhotoFailed, photoSrc, usePhotoFailures } from '../lib/photo'
+import { isPhotoLoaded, markPhotoFailed, markPhotoLoaded, photoSrc, usePhotoFailures } from '../lib/photo'
 
 export interface SeatGroup {
   key: string
@@ -152,20 +152,25 @@ function SeatFace({ m, r, border, halo }: { m: Member; r: number; border: string
   const isFailed = usePhotoFailures()
   const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
   const src = photoSrc(m.photo)
+  // 이미 받아 둔 사진은 번쩍임 없이 바로, 새로 도착하면 점등 애니메이션
+  const [state, setState] = useState<'wait' | 'lit' | 'ready'>(() => (isPhotoLoaded(src) ? 'ready' : 'wait'))
+  const failed = isFailed(src)
   return (
-    <g>
+    <g className={`face ${failed ? 'ready' : state}`}>
       {/* 이니셜을 먼저 그리고 사진은 그 위에 (불러오기 전·실패 시에도 빈 원이 안 남음) */}
       <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
       <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
-      {!isFailed(src) && (
+      {!failed && (
         <image
           href={src!}
+          onLoad={() => { markPhotoLoaded(src!); setState((v) => (v === 'wait' ? 'lit' : v)) }}
           onError={() => markPhotoFailed(src!)}
           x={-r} y={-r} width={r * 2} height={r * 2}
           clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMin slice"
         />
       )}
-      <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
+      <circle className="ring" r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
+      <circle className="flash" r={r * 1.15} fill="none" stroke="#41d8ff" strokeWidth={Math.max(1.4, r * 0.22)} />
       {halo && <circle r={r * 1.24} fill="none" stroke={halo} strokeWidth={Math.max(1.6, r * 0.26)} />}
     </g>
   )

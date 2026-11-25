@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { photoSrc, usePhotoSettled } from '../lib/photo'
 import type { Committee, Member } from '../types'
 import { Hemicycle, type SeatGroup } from './Hemicycle'
 
@@ -79,12 +80,22 @@ export function SeatMap({
   }, [statusOf, statusMap])
   const statusLabel = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.label ?? null : null), [statusOf, statusMap])
 
+  // 프로필 보기 수신 게이지: 사진으로 보여 줄 의원 기준
+  const settled = usePhotoSettled()
+  const targets = useMemo(
+    () => (mode === 'profile' ? members.filter((m) => !isDim(m)).map((m) => photoSrc(m.photo)).filter(Boolean) as string[] : []),
+    [mode, members, isDim],
+  )
+  const doneCount = targets.filter((t) => settled(t)).length
   return (
     <div className="seatmap">
       <div className="seatmap-tools">
+        <div className="seatmap-left">
         <div className="seg" role="group" aria-label="보기 모드">
           <button className={mode === 'dot' ? 'active' : ''} onClick={() => setMode('dot')}>간략히 보기</button>
           <button className={mode === 'profile' ? 'active' : ''} onClick={() => setMode('profile')}>프로필 보기</button>
+        </div>
+        {mode === 'profile' && <LoadGauge key={targets.length} done={doneCount} total={targets.length} />}
         </div>
         <div className="seg" role="group" aria-label="재정렬">
           <button className={groupBy === 'party' ? 'active' : ''} onClick={() => setGroupBy('party')}>정당별</button>
@@ -124,6 +135,26 @@ export function SeatMap({
         selectedId={selectedId}
         mode={mode}
       />
+    </div>
+  )
+}
+
+/** 프로필 수신 게이지: 처음부터 다 받아져 있으면 표시 안 함, 다 받으면 '수신 완료' 후 사라짐 */
+function LoadGauge({ done, total }: { done: number; total: number }) {
+  const startedIncomplete = useRef(done < total)
+  const [phase, setPhase] = useState<'loading' | 'done' | 'hidden'>(done < total ? 'loading' : 'hidden')
+  useEffect(() => {
+    if (!startedIncomplete.current || done < total) return
+    setPhase('done')
+    const t = setTimeout(() => setPhase('hidden'), 1400)
+    return () => clearTimeout(t)
+  }, [done, total])
+  if (!startedIncomplete.current || total === 0) return null
+  return (
+    <div className={`load-gauge ${phase}`} role="status" aria-live="polite">
+      <span className="lb">{phase === 'loading' ? '프로필 수신 중' : '수신 완료'}</span>
+      <span className="trk"><span className="fil" style={{ width: `${(done / total) * 100}%` }} /></span>
+      <span className="num">{done} / {total}</span>
     </div>
   )
 }

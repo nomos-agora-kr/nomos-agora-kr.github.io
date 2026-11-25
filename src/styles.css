@@ -598,3 +598,24 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .lp-hero .lp-lead { margin-bottom: 0; }
 .lp-stats-section { margin-top: 20px; }
 .lp-stats-section h2 { font-size: clamp(20px, 2.6vw, 24px); }
+
+/* 좌석 사진 점등 */
+.face image { opacity: 0; }
+.face.ready image { opacity: 1; }
+.face.lit image { animation: photo-in 450ms ease-out forwards; }
+.face .flash { opacity: 0; pointer-events: none; }
+.face.lit .flash { animation: seat-flash 900ms ease-out; transform-box: fill-box; transform-origin: center; }
+.face.wait .ring { animation: seat-wait 1.6s ease-in-out infinite; }
+@keyframes photo-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes seat-flash { 0% { opacity: .95; transform: scale(.85); } 100% { opacity: 0; transform: scale(1.35); } }
+@keyframes seat-wait { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* 수신 게이지 */
+.seatmap-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.load-gauge { display: flex; align-items: center; gap: 10px; min-width: 250px; transition: opacity 600ms ease; }
+.load-gauge .lb { color: #8ea7b8; font-size: 14px; white-space: nowrap; }
+.load-gauge .num { color: #dff6ff; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.load-gauge .trk { flex: 1; min-width: 90px; height: 4px; border-radius: 2px; background: #0d2436; overflow: hidden; }
+.load-gauge .fil { display: block; height: 100%; background: #41d8ff; box-shadow: 0 0 8px rgba(65,216,255,.7); transition: width 250ms ease; }
+.load-gauge.done .lb { color: #41d8ff; }
+.load-gauge.hidden { opacity: 0; pointer-events: none; }

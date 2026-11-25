@@ -1,5 +1,5 @@
 import type { Member } from '../types'
-import { markPhotoFailed, photoSrc, usePhotoFailures } from '../lib/photo'
+import { markPhotoFailed, markPhotoLoaded, photoSrc, usePhotoFailures } from '../lib/photo'
 
 interface Props {
   member: Member
@@ -34,7 +34,7 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
           <img
             src={src!} alt={`${member.name} 의원 공식 사진`} width={size} height={size}
             referrerPolicy="no-referrer"
-            onLoad={(e) => e.currentTarget.classList.add('loaded')}
+            onLoad={(e) => { e.currentTarget.classList.add('loaded'); markPhotoLoaded(src!) }}
             onError={() => markPhotoFailed(src!)}
           />
         )}

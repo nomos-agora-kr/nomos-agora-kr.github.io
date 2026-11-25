@@ -25,7 +25,8 @@ async function makeThumb(src: string, img: HTMLImageElement): Promise<boolean> {
   try {
     await img.decode() // 해독은 브라우저 백그라운드 스레드에서
     const bmp = await createImageBitmap(img, sx, sy, side, side, { resizeWidth: THUMB, resizeHeight: THUMB, resizeQuality: 'high' })
-    ctx.drawImage(bmp, 0, 0)
+    // Safari 등 크기 조절 옵션을 무시하는 브라우저도 있어 그릴 크기를 직접 지정
+    ctx.drawImage(bmp, 0, 0, THUMB, THUMB)
     bmp.close()
   } catch {
     ctx.drawImage(img, sx, sy, side, side, 0, 0, THUMB, THUMB)
@@ -36,6 +37,9 @@ async function makeThumb(src: string, img: HTMLImageElement): Promise<boolean> {
 const inflight = new Set<string>()
 let queue: string[] = []
 let maxParallel = 3
+// 휴대폰(특히 아이폰·앱 안 브라우저)은 메모리 한도가 낮아 동시에 해독하는 원본 수를 줄임
+const MOBILE = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 820)
+const CAP = MOBILE ? 3 : 6
 
 function slowNet(): boolean {
   const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
@@ -60,6 +64,8 @@ function pump() {
       const el = img
       if (img) { img.onload = img.onerror = null; img = null }
       if (ok && el) ok = await makeThumb(src, el)
+      // 원본 이미지의 해독된 픽셀을 바로 놓아 줌 (아이폰·앱 안 브라우저 메모리 한도 대비)
+      if (el) el.removeAttribute('src')
       inflight.delete(src)
       done.add(src)
       if (ok) markPhotoLoaded(src)
@@ -85,7 +91,7 @@ export function preloadPhotos(photos: (string | null | undefined)[], parallel = 
   if (slowNet()) return
   const add = norm(photos).filter((s) => !queue.includes(s))
   queue.push(...add)
-  maxParallel = Math.max(maxParallel, parallel)
+  maxParallel = Math.min(CAP, Math.max(maxParallel, parallel))
   if (parallel > 3) pump()
   else idle(pump)
 }
@@ -96,6 +102,6 @@ export function prefetchPhotosNow(photos: (string | null | undefined)[]) {
   if (!urgent.length) return
   const set = new Set(urgent)
   queue = [...urgent, ...queue.filter((s) => !set.has(s))]
-  maxParallel = Math.max(maxParallel, 6)
+  maxParallel = CAP
   pump()
 }

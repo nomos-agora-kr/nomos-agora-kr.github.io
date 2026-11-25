@@ -834,3 +834,8 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .lp-principles ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 900px) { .lp-principles ul { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .lp-rise { transition: none; } }
+/* 전직 의원 표시 · 최근 움직임 */
+.former-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border: 1px solid rgba(166,191,207,.45); border-radius: 6px; color: #c8d8e3; font-size: 12px; font-style: normal; font-weight: 700; letter-spacing: .3px; vertical-align: 1px; }
+.proposer .former-tag { margin: 2px 0 0; }
+.stall .recent { color: #9fe3ff; font-weight: 600; }
+.bi-recent { display: block; margin: 2px 0 4px; color: #9fe3ff; font-size: 13px; font-weight: 600; }

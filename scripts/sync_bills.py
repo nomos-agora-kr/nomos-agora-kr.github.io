@@ -325,6 +325,53 @@ def attach_photos(api: Api, members: list[dict], prev: dict[str, str]) -> None:
     print(f"  사진 주소: {sum(1 for m in members if m.get('photo'))}/{len(members)}")
 
 
+def _first(row: dict, *keys: str) -> str:
+    for k in keys:
+        v = row.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ""
+
+
+def _latest(v: str) -> str:
+    """'A/B/C' 처럼 이력이 이어진 값은 마지막(가장 최근) 것"""
+    parts = [x.strip() for x in re.split(r"[/,]", v) if x.strip()]
+    return parts[-1] if parts else v
+
+
+def build_former(api: Api, codes: set[str], prev: dict[str, dict]) -> list[dict]:
+    """법안에 이름이 있지만 현직 명단에 없는 22대 전직 의원(사퇴·당선무효 등).
+    국회 통합 의원 자료(ALLNAMEMBER)에서 코드로 찾아 이름·정당·지역·사진을 채움.
+    API 실패 시 이전 값 유지, 끝내 못 찾은 코드는 화면에서 '확인 필요'로 표시됨."""
+    if not codes:
+        return []
+    found: dict[str, dict] = {}
+    try:
+        sample_printed = False
+        for r in api.all(API_ALL_MEMBER):
+            code = (r.get("NAAS_CD") or "").strip()
+            if code not in codes:
+                continue
+            if not sample_printed:
+                print("  전직 의원 자료 예시 필드:", json.dumps({k: v for k, v in r.items() if k != "NAAS_PIC"}, ensure_ascii=False)[:600])
+                sample_printed = True
+            found[code] = {
+                "id": code,
+                "name": _first(r, "NAAS_NM", "HG_NM"),
+                "party": _latest(_first(r, "PLPT_NM", "POLY_NM")) or "무소속",
+                "district": _latest(_first(r, "ELECD_NM", "ORIG_NM")) or "비례대표",
+                "committees": [],
+                "photo": _photo_url(r),
+                "former": True,
+            }
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! 통합 API 실패, 이전 전직 의원 정보 유지: {e}")
+    out = [found.get(c) or prev.get(c) for c in sorted(codes)]
+    out = [m for m in out if m and m.get("name")]
+    print(f"  전직 의원: {len(out)}/{len(codes)}명 확인 ({', '.join(m['name'] for m in out)})")
+    return out
+
+
 # ---------------------------------------------------------------- main
 def inspect(api: Api) -> None:
     for code, params in [
@@ -405,17 +452,31 @@ def main() -> int:
                 "date": d10(v.get("PROC_DT")),
             }
 
+    member_ids = {m["id"] for m in members}
+    # 법안 발의자 중 현직 명단에 없는 코드 → 22대 전직 의원
+    ref_codes: set[str] = set()
+    for r in rows:
+        ref_codes |= set(split_codes(r.get("RST_MONA_CD"))) | set(split_codes(r.get("PUBL_MONA_CD")))
+    missing = ref_codes - member_ids
+    mf_now = read_json(OUT / "members.json") or {}
+    prev_former = {m["id"]: m for m in mf_now.get("former", [])}
+    if missing - set(prev_former) or args.members:
+        former = build_former(api, missing, prev_former)
+    else:
+        former = [prev_former[c] for c in sorted(missing) if c in prev_former]
+    if mf_now and mf_now.get("former") != former:
+        changed += write_if_changed(OUT / "members.json", {**mf_now, "former": former}, ["updated"])
+
     index = []
     new_vote_fetch = 0
-    member_ids = {m["id"] for m in members}
-    name_by_id = {m["id"]: m["name"] for m in members}
+    name_by_id = {m["id"]: m["name"] for m in members + former}
     if (OUT / "bills").exists() and prev == {}:
         # 샘플 데이터를 실데이터로 처음 교체하는 경우: 샘플 파일 제거
         for f in (OUT / "bills").glob("PRC_SAMPLE*.json"):
             f.unlink()
         for f in (OUT / "member_bills").glob("M*.json"):
             f.unlink()
-    member_bills: dict[str, dict] = {mid: {"id": mid, "lead": [], "co": [], "votes": []} for mid in member_ids}
+    member_bills: dict[str, dict] = {mid: {"id": mid, "lead": [], "co": [], "votes": []} for mid in member_ids | {m["id"] for m in former}}
 
     for r in rows:
         bid = r.get("BILL_ID")
@@ -479,6 +540,10 @@ def main() -> int:
             item["summary"] = bill["summary"]
         if result:
             item["result"] = result
+        # 단계 시작일 이후 기록된 최근 움직임 (예: 소관위 상정) → 목록에 '최근' 표시
+        tl = bill["timeline"]
+        if tl and tl[-1]["date"] and tl[-1]["date"] > since:
+            item["last"] = [tl[-1]["date"], tl[-1]["label"]]
         if lead_name or r.get("RST_PROPOSER"):
             item["lead_name"] = lead_name or split_names(r.get("RST_PROPOSER"))[0]
         index.append(item)

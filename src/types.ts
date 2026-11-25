@@ -25,12 +25,16 @@ export interface Member {
   terms?: string
   committees: MemberCommittee[]
   photo?: string | null
+  /** 22대 전직 의원 (사퇴·당선무효 등) — 본회의장 좌석에는 없음 */
+  former?: boolean
 }
 
 export interface MembersFile {
   meta: Meta
   parties: Record<string, string>
   members: Member[]
+  /** 법안에 이름이 남은 22대 전직 의원 */
+  former?: Member[]
 }
 
 export interface Committee {
@@ -58,6 +62,8 @@ export interface BillIndexItem {
   proposer_count: number
   voted: boolean
   lead_name?: string
+  /** 단계 시작 이후 최근 움직임 [날짜, 내용] */
+  last?: [string, string]
   result?: string | null
 }
 

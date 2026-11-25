@@ -52,7 +52,7 @@ export function Dossier({ member, partyColor, onClose, onOpenBill }: Props) {
             <header className="dossier-head">
               <Avatar member={member} color={color} size={72} />
               <div>
-                <span className="card-overline">의원 기록 파일</span>
+                <span className="card-overline">의원 기록 파일{member.former && <em className="former-tag">전 의원</em>}</span>
                 <h2>{member.name}</h2>
                 <p><b style={{ color: partyTextColor(color) }}>{member.party}</b> · {member.district}{member.terms ? ` · ${member.terms}` : ''}</p>
               </div>
@@ -60,7 +60,9 @@ export function Dossier({ member, partyColor, onClose, onOpenBill }: Props) {
             </header>
 
             <div className="dossier-roles">
-              {member.committees.length ? (
+              {member.former ? (
+                <span className="muted">22대 국회 전직 의원 · 발의 기록은 그대로 남아 있습니다</span>
+              ) : member.committees.length ? (
                 member.committees.map((c) => (
                   <span key={c.id} className={`role-chip${c.role !== '위원' ? ' strong' : ''}`}>{c.name.replace('위원회', '위')} · {c.role}</span>
                 ))

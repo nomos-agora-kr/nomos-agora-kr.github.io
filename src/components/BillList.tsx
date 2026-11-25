@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { BillIndexItem, Stage } from '../types'
-import { STAGE_SHORT, daysSince } from '../lib/format'
+import { STAGE_SHORT, daysSince, fmtDate } from '../lib/format'
 
 interface Props {
   bills: BillIndexItem[]
@@ -109,6 +109,7 @@ export function BillList({ bills, selected, onOpen, onIntent }: Props) {
                 </div>
                 <strong>{b.title}</strong>
                 {b.summary && <p>{b.summary}</p>}
+                {pending && b.last && <span className="bi-recent">최근 {fmtDate(b.last[0])} {b.last[1]}</span>}
                 <small>{b.lead_name ? `${b.lead_name} 등 ${b.proposer_count}인` : `${b.proposer_count}인`} · {b.committee ?? '위원회 미정'}</small>
               </button>
             </li>

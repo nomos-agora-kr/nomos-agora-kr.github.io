@@ -48,12 +48,13 @@ export function TopHud({ meta, total, pending, bills, members, partyColor, onOpe
   const distMatches = useMemo(() => {
     const k = norm(dq)
     if (k.length < 2) return []
-    return members.filter((m) => m.district !== '비례대표' && norm(m.district).includes(k))
+    return members.filter((m) => !m.former && m.district !== '비례대표' && norm(m.district).includes(k))
   }, [dq, members])
 
   const randomMember = () => {
-    if (!members.length) return
-    onOpenMember(members[Math.floor(Math.random() * members.length)])
+    const cur = members.filter((m) => !m.former)
+    if (!cur.length) return
+    onOpenMember(cur[Math.floor(Math.random() * cur.length)])
   }
 
   return (
@@ -104,7 +105,7 @@ export function TopHud({ meta, total, pending, bills, members, partyColor, onOpe
               {results.m.map((m) => (
                 <button key={m.id} onClick={() => { onOpenMember(m); setOpen(false) }}>
                   <i style={{ background: partyColor(m.party) }} />
-                  <b>{m.name}</b><small>{m.party} · {m.district}</small>
+                  <b>{m.name}</b><small>{m.former ? '전 의원 · ' : ''}{m.party} · {m.district}</small>
                 </button>
               ))}
               {results.b.length > 0 && <span className="pop-label">법안</span>}

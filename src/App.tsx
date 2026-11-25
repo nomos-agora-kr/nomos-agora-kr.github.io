@@ -32,7 +32,9 @@ export default function App() {
   }, [])
 
   const members = useMemo(() => mf?.members ?? [], [mf])
-  const byId = useMemo(() => new Map(members.map((m) => [m.id, m])), [members])
+  // 전직 의원은 좌석도에는 없고, 발의자·검색·기록 파일에서만 쓰임
+  const allMembers = useMemo(() => [...members, ...(mf?.former ?? [])], [members, mf])
+  const byId = useMemo(() => new Map(allMembers.map((m) => [m.id, m])), [allMembers])
   const parties = useMemo(() => mf?.parties ?? {}, [mf])
   const partyColor = useCallback((p: string) => pc(parties, p), [parties])
   const selectedMember = route.member ? byId.get(route.member) ?? null : null
@@ -86,7 +88,7 @@ export default function App() {
         total={meta?.total ?? bf?.bills.length ?? 0}
         pending={meta?.pending ?? 0}
         bills={bf?.bills ?? []}
-        members={members}
+        members={allMembers}
         partyColor={partyColor}
         onOpenBill={openBill}
         onOpenMember={openMember}

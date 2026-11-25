@@ -67,6 +67,10 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
   const statusOfPropose = (m: Member) => (bill.lead.includes(m.id) ? 'lead' : proposerIds.has(m.id) ? 'co' : cmtIds.has(m.id) ? 'cmt' : 'none')
   const leads = bill.lead.map((id) => byId.get(id)).filter(Boolean) as Member[]
   const cos = bill.co.map((id) => byId.get(id)).filter(Boolean) as Member[]
+  // 명단에서 찾지 못한 코드도 버리지 않고 '확인 필요'로 표시
+  const unknown = [...bill.lead, ...bill.co].filter((id) => !byId.has(id))
+  const last = bill.timeline.length ? bill.timeline[bill.timeline.length - 1] : null
+  const recent = last && last.date > bill.stage_since ? last : null
   const days = daysSince(bill.stage_since)
   const curIdx = bill.stage === 'voted' ? 4 : bill.stage === 'closed' ? -1 : STAGE_ORDER.indexOf(bill.stage)
 
@@ -100,6 +104,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
           <p className="stall">
             <b>{STAGE_LABEL[bill.stage]}</b>에서 <em>{days}일째</em> 계류 중
             <span className="muted"> · {fmtDate(bill.stage_since)}부터</span>
+            {recent && <span className="recent"> · 최근 {fmtDate(recent.date)} {recent.label}</span>}
           </p>
         ) : bill.stage === 'voted' && bill.tally ? (
           <div className="tally">
@@ -122,6 +127,14 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
               <Avatar member={m} color={partyColor(m.party)} size={56} badge={role} onClick={() => onSelect(m)} />
               <span>{m.name}</span>
               <small style={{ color: partyTextColor(partyColor(m.party)) }}>{m.party}</small>
+              {m.former && <em className="former-tag">전 의원</em>}
+            </div>
+          ))}
+          {unknown.map((id) => (
+            <div className="proposer unmatched" key={id} title="의원 명단에서 찾지 못한 코드">
+              <span className="avatar-blank">?</span>
+              <span>확인 필요</span>
+              <small>{id}</small>
             </div>
           ))}
           {bill.unmatched.map((n) => (

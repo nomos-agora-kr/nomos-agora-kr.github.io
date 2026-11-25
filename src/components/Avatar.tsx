@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import type { Member } from '../types'
-import { getThumb, markPhotoFailed, photoSrc, usePhotoBatches, usePhotoFailures } from '../lib/photo'
+import { getThumb, photoSrc, usePhotoBatches } from '../lib/photo'
+import { prefetchPhotosNow } from '../lib/preload'
 import { ThumbCanvas } from './ThumbCanvas'
 
 interface Props {
@@ -15,10 +17,11 @@ interface Props {
 /** 프로필 칩: 사진(있으면) 또는 이니셜 + 정당색 외곽선. dim 이면 흑백·투명 처리 */
 export function Avatar({ member, color, size = 40, dim, badge, onClick, title }: Props) {
   const initial = member.name.slice(1, 2) || member.name.slice(0, 1)
-  const isFailed = usePhotoFailures()
   const src = photoSrc(member.photo)
   usePhotoBatches() // 썸네일이 준비되면 다시 그림
   const thumb = getThumb(src)
+  // 원본 사진을 칩마다 따로 띄우지 않고(휴대폰 메모리 부담), 썸네일 큐에 우선 요청만 함
+  useEffect(() => { if (src && !thumb) prefetchPhotosNow([src]) }, [src, thumb])
   return (
     <button
       type="button"
@@ -33,16 +36,7 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
         <span className="avatar-initial" style={{ background: `color-mix(in srgb, ${color} 26%, #061423)` }}>
           {initial}
         </span>
-        {thumb ? (
-          <ThumbCanvas thumb={thumb} size={size} className="avatar-thumb" />
-        ) : !isFailed(src) && (
-          <img
-            src={src!} alt={`${member.name} 의원 공식 사진`} width={size} height={size}
-            referrerPolicy="no-referrer"
-            onLoad={(e) => e.currentTarget.classList.add('loaded')}
-            onError={() => markPhotoFailed(src!)}
-          />
-        )}
+        {thumb && <ThumbCanvas thumb={thumb} size={size} className="avatar-thumb" />}
       </span>
       {badge && <em className={`avatar-badge${badge === '대표' ? ' lead' : badge === '공동' ? ' co' : ''}`}>{badge}</em>}
     </button>

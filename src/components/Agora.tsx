@@ -40,8 +40,8 @@ export function AgoraHome({ bills, onOpen }: { bills: BillIndexItem[]; onOpen: (
     <section className="agora-home">
       <div className="hero-title">
         <p>AGORA · 찬반 현황</p>
-        <h1>법안에 대한 시민의 한 표와 한 줄</h1>
-        <span>왼쪽에서 법안을 골라 찬성·반대를 남겨 보세요. 법안마다 하루 한 번, 매일 누적됩니다. 결과와 의견은 투표한 뒤에 보입니다.</span>
+        <h1>법안에 대한 당신의 의견을 보여주세요.</h1>
+        <span>왼쪽에서 법안을 골라 찬성·반대를 남겨 보세요. 하루 한 번, 당신의 의견을 누적할 수 있습니다. 투표 결과와 다른 사람의 의견은, 투표한 뒤에 볼 수 있습니다.</span>
       </div>
 
       {ready === false && <AgoraOffline />}
@@ -79,10 +79,10 @@ export function AgoraHome({ bills, onOpen }: { bills: BillIndexItem[]; onOpen: (
       <div className="hud-panel agora-rules">
         <span className="card-overline">아고라 이용 규칙</span>
         <ul>
-          <li><b>하루 한 표</b>법안마다 하루에 한 번 찬성 또는 반대를 누를 수 있고, 매일 누적됩니다.</li>
-          <li><b>한 줄 의견</b>투표할 때 {OPINION_MAX}자 이내로 이유를 남길 수 있어요. 욕설·비하 표현, 전화번호·주소는 쓸 수 없습니다.</li>
-          <li><b>신고</b>부적절한 의견은 신고해 주세요. 신고가 쌓이면 바로 숨겨지고, 운영자가 확인 후 삭제합니다.</li>
-          <li><b>내 기록</b>며칠 찬성·반대했는지는 이 기기에만 저장되고, 서버는 누가 투표했는지 알지 못합니다.</li>
+          <li><b>하루 한 표</b>법안마다 하루에 한 번 찬성 또는 반대를 누를 수 있고, 투표수는 누적됩니다.</li>
+          <li><b>한 줄 의견</b>투표할 때 {OPINION_MAX}자 이내로 이유를 남길 수 있어요. 욕설·비하 표현, 개인정보는 남길 수 없습니다.</li>
+          <li><b>신고</b>부적절한 의견은 신고해 주세요. 신고가 쌓이면 해당 의견은 숨겨지고, 개발자가 확인 후 삭제합니다.</li>
+          <li><b>내 기록</b>며칠 찬성·반대했는지는 해당 브라우저에만 저장되고, 브라우저 기록을 삭제하면 초기화됩니다.</li>
         </ul>
       </div>
     </section>

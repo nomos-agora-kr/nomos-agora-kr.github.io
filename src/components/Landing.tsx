@@ -93,6 +93,18 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) 
         </div>
       </section>
 
+      {/* 3. 숫자로 보는 22대 국회 */}
+      <section className="lp-section lp-stats-section">
+        <h2>숫자로 보는 {meta?.age ?? 22}대 국회</h2>
+        <div className="lp-stats">
+          <Stat label="발의된 법안" value={counts.total} />
+          <Stat label="심사 중인 법안" value={counts.pending} />
+          <Stat label="본회의 표결 완료" value={counts.voted} />
+          <Stat label="폐기·대안반영 등 종료" value={counts.closed} />
+          <Stat label="현직 국회의원" value={members.length} unit="명" />
+        </div>
+      </section>
+
       {/* 2. 오늘의 국회 */}
       <section className="lp-section">
         <h2>오늘의 국회</h2>
@@ -134,39 +146,27 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) 
         </div>
       </section>
 
-      {/* 3. 숫자로 보는 22대 국회 */}
-      <section className="lp-section">
-        <h2>숫자로 보는 {meta?.age ?? 22}대 국회</h2>
-        <div className="lp-stats">
-          <Stat label="발의된 법안" value={counts.total} />
-          <Stat label="심사 중인 법안" value={counts.pending} />
-          <Stat label="본회의 표결 완료" value={counts.voted} />
-          <Stat label="폐기·대안반영 등 종료" value={counts.closed} />
-          <Stat label="현직 국회의원" value={members.length} unit="명" />
-        </div>
-      </section>
-
       {/* 4. 법안은 이렇게 만들어져요 */}
       <section className="lp-section">
         <h2>법안은 이렇게 만들어져요</h2>
         <ol className="lp-steps">
           <li>
-            <span className="lp-step-no"><small>STEP</small>01</span>
+            <span className="lp-step-no">01</span>
             <strong>발의</strong>
             <p>의원 10명 이상이 이름을 올려 법안을 냅니다. 대표발의자 1명과 공동발의자로 나뉩니다.</p>
           </li>
           <li>
-            <span className="lp-step-no"><small>STEP</small>02</span>
+            <span className="lp-step-no">02</span>
             <strong>소관 상임위원회</strong>
             <p>분야별 위원회가 내용을 심사합니다. 대부분의 법안이 이 단계에 머물러 있습니다.</p>
           </li>
           <li>
-            <span className="lp-step-no"><small>STEP</small>03</span>
+            <span className="lp-step-no">03</span>
             <strong>법제사법위원회</strong>
             <p>다른 법과 충돌하지 않는지, 문구가 맞는지 체계·자구를 심사합니다.</p>
           </li>
           <li>
-            <span className="lp-step-no"><small>STEP</small>04</span>
+            <span className="lp-step-no">04</span>
             <strong>본회의</strong>
             <p>국회의원 전체가 표결합니다. 의원 한 명 한 명의 찬성·반대·기권이 기록됩니다.</p>
           </li>

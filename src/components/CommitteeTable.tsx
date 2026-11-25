@@ -1,4 +1,5 @@
 import type { Committee, Member } from '../types'
+import { partyTextColor } from '../lib/format'
 import { Avatar } from './Avatar'
 
 interface Props {
@@ -40,7 +41,7 @@ export function CommitteeTable({ committee, byId, partyColor, proposerIds, onSel
         onClick={() => onSelect(m)}
       />
       <span className="cmt-name">{m.name}</span>
-      <span className="cmt-party" style={{ color: partyColor(m.party) }}>{m.party}</span>
+      <span className="cmt-party" style={{ color: partyTextColor(partyColor(m.party)) }}>{m.party}</span>
     </div>
   )
 

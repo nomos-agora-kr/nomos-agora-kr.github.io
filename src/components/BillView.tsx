@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BillDetail, Committee, Member } from '../types'
-import { STAGE_LABEL, STAGE_ORDER, VOTE_COLOR, VOTE_LABEL, daysSince, fmtDate } from '../lib/format'
+import { STAGE_LABEL, STAGE_ORDER, VOTE_COLOR, VOTE_LABEL, daysSince, fmtDate, partyTextColor } from '../lib/format'
 import { loadBill } from '../lib/data'
 import { Avatar } from './Avatar'
 import { CommitteeTable } from './CommitteeTable'
@@ -114,7 +114,7 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
             <div className={`proposer${role === '대표' ? ' lead' : ''}`} key={m.id}>
               <Avatar member={m} color={partyColor(m.party)} size={56} badge={role} onClick={() => onSelect(m)} />
               <span>{m.name}</span>
-              <small style={{ color: partyColor(m.party) }}>{m.party}</small>
+              <small style={{ color: partyTextColor(partyColor(m.party)) }}>{m.party}</small>
             </div>
           ))}
           {bill.unmatched.map((n) => (

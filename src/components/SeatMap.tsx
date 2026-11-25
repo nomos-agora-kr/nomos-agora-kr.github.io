@@ -78,7 +78,6 @@ export function SeatMap({
           <button className={mode === 'profile' ? 'active' : ''} onClick={() => setMode('profile')}>프로필 보기</button>
         </div>
         <div className="seg" role="group" aria-label="재정렬">
-          <span className="seg-label">묶기</span>
           <button className={groupBy === 'party' ? 'active' : ''} onClick={() => setGroupBy('party')}>정당별</button>
           <button className={groupBy === 'committee' ? 'active' : ''} onClick={() => setGroupBy('committee')}>상임위별</button>
           {statusOf && (

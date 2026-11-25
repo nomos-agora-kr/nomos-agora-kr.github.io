@@ -25,6 +25,7 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
       title={title ?? `${member.name} · ${member.party} · ${member.district}`}
       aria-label={`${member.name} ${member.party} 기록 파일 열기`}
     >
+      <span className="avatar-face">
       {!isFailed(src) ? (
         <img
           src={src!} alt={`${member.name} 의원 공식 사진`} loading="lazy" width={size} height={size}
@@ -35,7 +36,8 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
           {initial}
         </span>
       )}
-      {badge && <em className={`avatar-badge${badge === '공동' ? ' sub' : ''}`}>{badge}</em>}
+      </span>
+      {badge && <em className={`avatar-badge${badge === '대표' ? ' lead' : badge === '공동' ? ' co' : ''}`}>{badge}</em>}
     </button>
   )
 }

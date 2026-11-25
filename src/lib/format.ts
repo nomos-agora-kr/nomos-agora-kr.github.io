@@ -56,3 +56,8 @@ export function partyColor(parties: Record<string, string>, party: string): stri
 export function bodyStage(stage: Stage): boolean {
   return stage === 'voted'
 }
+
+/** 어두운 배경 위 글자용 정당색: 원래 색에 흰색을 섞어 대비 확보 (외곽선은 원색 유지) */
+export function partyTextColor(color: string): string {
+  return `color-mix(in srgb, ${color} 55%, #ffffff)`
+}

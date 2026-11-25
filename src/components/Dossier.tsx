@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BillBrief, Member, MemberBills } from '../types'
-import { STAGE_SHORT, VOTE_COLOR, VOTE_LABEL, fmtDate } from '../lib/format'
+import { STAGE_SHORT, VOTE_COLOR, VOTE_LABEL, fmtDate, partyTextColor } from '../lib/format'
 import { loadMemberBills } from '../lib/data'
 import { Avatar } from './Avatar'
 
@@ -54,7 +54,7 @@ export function Dossier({ member, partyColor, onClose, onOpenBill }: Props) {
               <div>
                 <span className="card-overline">의원 기록 파일</span>
                 <h2>{member.name}</h2>
-                <p><b style={{ color }}>{member.party}</b> · {member.district}{member.terms ? ` · ${member.terms}` : ''}</p>
+                <p><b style={{ color: partyTextColor(color) }}>{member.party}</b> · {member.district}{member.terms ? ` · ${member.terms}` : ''}</p>
               </div>
               <button className="detail-close-button" onClick={onClose} aria-label="닫기">×</button>
             </header>

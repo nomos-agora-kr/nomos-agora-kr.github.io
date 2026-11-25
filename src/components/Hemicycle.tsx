@@ -141,7 +141,7 @@ function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; b
           href={src!}
           onError={() => markPhotoFailed(src!)}
           x={-r} y={-r} width={r * 2} height={r * 2}
-          clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMid slice"
+          clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMin slice"
         />
       ) : (
         <>

@@ -69,6 +69,7 @@ jobs:
         run: |
           git config user.name  "nomos-bot"
           git config user.email "nomos-bot@users.noreply.github.com"
+          git checkout -- worker/wrangler.toml   # 배포 때 넣은 DB ID 는 커밋하지 않음
           git add public/data/agora.json
           git commit -m "chore: 아고라 API 주소 갱신" || exit 0
           git pull --rebase -q && git push

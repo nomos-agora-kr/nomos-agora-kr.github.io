@@ -36,6 +36,10 @@ export function SeatMap({
   members, parties, partyColor, committees, statusOf, statuses, onSelect, selectedId, defaultMode = 'dot', defaultGroup = 'party',
 }: Props) {
   const [mode, setMode] = useState<'dot' | 'profile'>(defaultMode)
+  // 프로필 보기 연출: 들어올 때마다 스캔부터 다시
+  const [photoPhase, setPhotoPhase] = useState<'scan' | 'show'>('scan')
+  const [runId, setRunId] = useState(0)
+  const enterProfile = () => { setPhotoPhase('scan'); setRunId((n) => n + 1); setMode('profile') }
   const [groupBy, setGroupBy] = useState<GroupBy>(statusOf ? defaultGroup : 'party')
   const statusMap = useMemo(() => new Map((statuses ?? []).map((s) => [s.key, s])), [statuses])
 
@@ -94,9 +98,9 @@ export function SeatMap({
         <div className="seatmap-left">
         <div className="seg" role="group" aria-label="보기 모드">
           <button className={mode === 'dot' ? 'active' : ''} onClick={() => setMode('dot')}>간략히 보기</button>
-          <button className={mode === 'profile' ? 'active' : ''} onClick={() => setMode('profile')}>프로필 보기</button>
+          <button className={mode === 'profile' ? 'active' : ''} onClick={() => mode !== 'profile' && enterProfile()}>프로필 보기</button>
         </div>
-        {mode === 'profile' && <LoadGauge key={targets.length} targets={targets} />}
+        {mode === 'profile' && <LoadGauge key={`${runId}-${targets.length}`} targets={targets} onReveal={() => setPhotoPhase('show')} />}
         </div>
         <div className="seg" role="group" aria-label="재정렬">
           <button className={groupBy === 'party' ? 'active' : ''} onClick={() => setGroupBy('party')}>정당별</button>
@@ -132,6 +136,7 @@ export function SeatMap({
         statusLabel={statusLabel}
         dotStyle={dotStyle}
         haloOf={haloOf}
+        photoPhase={photoPhase}
         onSelect={onSelect}
         selectedId={selectedId}
         mode={mode}
@@ -140,26 +145,46 @@ export function SeatMap({
   )
 }
 
-/** 프로필 수신 게이지: 처음부터 다 받아져 있으면 표시 안 함, 다 받으면 '수신 완료' 후 사라짐 */
-function LoadGauge({ targets }: { targets: string[] }) {
-  // 도착 알림은 이 작은 컴포넌트만 받음 (좌석도 전체는 다시 그리지 않음)
+const MIN_SCAN_MS = 2800 // 미리 받아져 있어도 이만큼은 '받는 중'으로 보여 줌
+const MAX_SCAN_MS = 12000 // 사진이 끝내 안 와도 이 시간이 지나면 받은 것까지만 공개
+
+/**
+ * 프로필 수신 게이지 + 연출 진행
+ * 표시 수 = min(실제 도착 수, 시간에 비례한 수) → 일정한 속도로 차오르고, 다 차면 한 번에 공개
+ * 도착 알림·매 프레임 갱신은 이 작은 컴포넌트만 받음 (좌석도는 공개 순간 한 번만 다시 그림)
+ */
+function LoadGauge({ targets, onReveal }: { targets: string[]; onReveal: () => void }) {
   const settled = usePhotoSettled()
   const total = targets.length
-  const done = targets.reduce((n, t) => n + (settled(t) ? 1 : 0), 0)
-  const startedIncomplete = useRef(done < total)
-  const [phase, setPhase] = useState<'loading' | 'done' | 'hidden'>(done < total ? 'loading' : 'hidden')
+  const real = targets.reduce((n, t) => n + (settled(t) ? 1 : 0), 0)
+  const reduce = useRef(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
+  const t0 = useRef(performance.now())
+  const [now, setNow] = useState(t0.current)
+  const [phase, setPhase] = useState<'loading' | 'done' | 'hidden'>('loading')
+  const elapsed = now - t0.current
+  const byTime = reduce.current ? total : Math.floor((total * Math.min(1, elapsed / MIN_SCAN_MS)))
+  const shown = elapsed >= MAX_SCAN_MS ? total : Math.min(real, byTime)
+
   useEffect(() => {
-    if (!startedIncomplete.current || done < total) return
+    if (phase !== 'loading') return
+    let raf = requestAnimationFrame(function tick(t) { setNow(t); raf = requestAnimationFrame(tick) })
+    return () => cancelAnimationFrame(raf)
+  }, [phase])
+
+  useEffect(() => {
+    if (phase !== 'loading' || total === 0 || shown < total) return
     setPhase('done')
+    onReveal()
     const t = setTimeout(() => setPhase('hidden'), 1400)
     return () => clearTimeout(t)
-  }, [done, total])
-  if (!startedIncomplete.current || total === 0) return null
+  }, [phase, shown, total, onReveal])
+
+  if (total === 0) return null
   return (
     <div className={`load-gauge ${phase}`} role="status" aria-live="polite">
       <span className="lb">{phase === 'loading' ? '프로필 수신 중' : '수신 완료'}</span>
-      <span className="trk"><span className="fil" style={{ width: `${(done / total) * 100}%` }} /></span>
-      <span className="num">{done} / {total}</span>
+      <span className="trk"><span className="fil" style={{ transform: `scaleX(${shown / total})` }} /></span>
+      <span className="num">{shown} / {total}</span>
     </div>
   )
 }

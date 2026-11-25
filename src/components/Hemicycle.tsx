@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { Member } from '../types'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
 import { isPhotoLoaded, markPhotoFailed, photoSrc, usePhotoBatches, usePhotoFailures } from '../lib/photo'
@@ -22,6 +22,8 @@ interface Props {
   statusLabel?: (m: Member) => string | null
   /** 간략히 보기 점 모양: fill(칠함) / ring(속 빈 원). 기본 fill */
   dotStyle?: (m: Member) => 'fill' | 'ring'
+  /** 프로필 보기 연출 단계: scan = 스캔 중(사진 숨김, HALO 깜빡임) / show = 한 번에 공개 */
+  photoPhase?: 'scan' | 'show'
   /** 프로필 보기에서 사진 바깥에 두를 강조 테두리 색 (예: 대표발의 = 오렌지) */
   haloOf?: (m: Member) => string | undefined
   onSelect: (m: Member) => void
@@ -30,7 +32,7 @@ interface Props {
 }
 
 export const Hemicycle = memo(function Hemicycle({
-  members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, dotStyle, haloOf, onSelect, selectedId, mode,
+  members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, dotStyle, haloOf, photoPhase = 'show', onSelect, selectedId, mode,
 }: Props) {
   const [hover, setHover] = useState<number | null>(null)
 
@@ -49,20 +51,8 @@ export const Hemicycle = memo(function Hemicycle({
     return c
   }, [members, groupOf])
 
-  // 빛 효과는 좌석도(SVG) 위 별도 레이어에서 처리 → 좌석도는 다시 그리지 않음 (GPU 합성)
-  const fxRef = useRef<HTMLDivElement>(null)
-  const flashAt = useCallback((x: number, y: number, rr: number) => {
-    const host = fxRef.current
-    if (!host || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const el = document.createElement('span')
-    el.className = 'seat-flash'
-    const size = ((rr * 2.6) / HEMI_W) * 100
-    el.style.left = `${(x / HEMI_W) * 100}%`
-    el.style.top = `${(y / HEMI_H) * 100}%`
-    el.style.width = `${size}%`
-    el.addEventListener('animationend', () => el.remove(), { once: true })
-    host.appendChild(el)
-  }, [])
+  const scanning = mode === 'profile' && photoPhase === 'scan'
+  const showPhotos = mode === 'profile' && photoPhase === 'show'
 
   // 프로필 보기: 사진은 미리받기 큐가 받고, 도착분을 0.3초마다 묶어서 좌석에 붙임
   const batch = usePhotoBatches()
@@ -108,7 +98,7 @@ export const Hemicycle = memo(function Hemicycle({
                 ) : (
                   dim
                     ? <Dot r={s.r} fill={dotColor(m)} party={partyColor(m.party)} ring={dotStyle?.(m) === 'ring'} dim selected={sel} />
-                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} onArrive={() => flashAt(s.x, s.y, s.r)} />
+                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} showPhoto={showPhotos} />
                 )}
               </g>
             )
@@ -122,14 +112,22 @@ export const Hemicycle = memo(function Hemicycle({
               ) : (
                 isDim(h.m)
                   ? <Dot r={r} fill={dotColor(h.m)} party={partyColor(h.m.party)} ring={dotStyle?.(h.m) === 'ring'} dim={false} selected />
-                  : <SeatFace m={h.m} r={r} border={partyColor(h.m.party)} halo={haloOf?.(h.m)} />
+                  : <SeatFace m={h.m} r={r} border={partyColor(h.m.party)} halo={haloOf?.(h.m)} showPhoto={showPhotos} />
               )}
             </g>
           )}
         </svg>
-        <div className="hemi-fx" ref={fxRef} aria-hidden>
-          {mode === 'profile' && <span className="hemi-beam" />}
-        </div>
+        {mode === 'profile' && (
+          <div className={`hemi-fx ${scanning ? 'scanning' : 'revealed'}`} aria-hidden>
+            {/* 사진이 나올 좌석들의 HALO — 레이어 하나를 통째로 깜빡임 (좌석도는 다시 그리지 않음) */}
+            <svg className="halo-layer" viewBox={`0 0 ${HEMI_W} ${HEMI_H}`}>
+              {placed.filter(({ m }) => !isDim(m)).map(({ m, s }) => (
+                <circle key={m.id} cx={s.x} cy={s.y} r={s.r * 1.16} />
+              ))}
+            </svg>
+            {scanning && <span className="hemi-beam" />}
+          </div>
+        )}
         {h && (
           <div
             className="hemi-tip"
@@ -170,23 +168,18 @@ function Dot({ r, fill, party, ring, dim, selected }: { r: number; fill: string;
   )
 }
 
-function SeatFace({ m, r, border, halo, onArrive }: { m: Member; r: number; border: string; halo?: string; onArrive?: () => void }) {
+function SeatFace({ m, r, border, halo, showPhoto }: { m: Member; r: number; border: string; halo?: string; showPhoto: boolean }) {
   const isFailed = usePhotoFailures()
   const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
   const src = photoSrc(m.photo)
   const ready = isPhotoLoaded(src) // 부모가 0.3초 단위로 다시 그릴 때 반영
-  const wasReady = useRef(ready)
-  useEffect(() => {
-    // 이 화면에 있는 동안 새로 도착한 사진만 번쩍임
-    if (ready && !wasReady.current) { wasReady.current = true; onArrive?.() }
-  }, [ready, onArrive])
   const failed = isFailed(src)
   return (
     <g>
-      {/* 이니셜을 먼저 그리고, 사진은 받아진 뒤에만 붙임 */}
+      {/* 이니셜을 먼저 그리고, 공개 단계에서 받아진 사진만 붙임 */}
       <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
       <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
-      {ready && !failed && (
+      {showPhoto && ready && !failed && (
         <image
           href={src!}
           onError={() => markPhotoFailed(src!)}

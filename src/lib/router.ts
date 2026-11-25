@@ -51,7 +51,11 @@ export function navigate(next: Partial<Route>) {
   if (r.view === 'landing') r.tab = 'nomos'
   const q = r.member ? `?m=${encodeURIComponent(r.member)}` : ''
   const id = r.bill ? `/${encodeURIComponent(r.bill)}` : ''
-  window.location.hash = r.view === 'landing'
+  const hash = r.view === 'landing'
     ? `/${q}`
     : r.tab === 'agora' ? `/agora${id}${q}` : r.bill ? `/bill${id}${q}` : `/explore${q}`
+  if (window.location.hash === `#${hash}`) return
+  // pushState 로 이동 → 방문 통계(Cloudflare, SPA 모드)가 화면 전환을 페이지뷰로 인식
+  history.pushState(null, '', `#${hash}`)
+  window.dispatchEvent(new HashChangeEvent('hashchange'))
 }

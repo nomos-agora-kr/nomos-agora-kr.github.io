@@ -136,18 +136,16 @@ function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; b
   const src = photoSrc(m.photo)
   return (
     <g>
-      {!isFailed(src) ? (
+      {/* 이니셜을 먼저 그리고 사진은 그 위에 (불러오기 전·실패 시에도 빈 원이 안 남음) */}
+      <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
+      <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
+      {!isFailed(src) && (
         <image
           href={src!}
           onError={() => markPhotoFailed(src!)}
           x={-r} y={-r} width={r * 2} height={r * 2}
           clipPath="url(#seat-clip)" preserveAspectRatio="xMidYMin slice"
         />
-      ) : (
-        <>
-          <circle r={r} fill={`color-mix(in srgb, ${border} 34%, #061423)`} />
-          <text y={r * 0.36} textAnchor="middle" fontSize={r * 1.02} className="seat-initial">{initial}</text>
-        </>
       )}
       <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
     </g>

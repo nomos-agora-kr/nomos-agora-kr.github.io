@@ -311,8 +311,9 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 }
 .avatar-face { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; display: block; }
 /* 세로로 긴 증명사진을 원 안에서 잘라 표시 (얼굴이 위쪽이라 상단 기준) */
-.avatar img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }
-.avatar-initial { width: 100%; height: 100%; }
+.avatar img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; opacity: 0; transition: opacity 160ms ease; }
+.avatar img.loaded { opacity: 1; }
+.avatar-initial { position: absolute; inset: 0; width: 100%; height: 100%; }
 .avatar-initial { display: grid; place-items: center; color: #eaf7ff; font-weight: 700; }
 .avatar:hover { transform: scale(1.08); z-index: 2; }
 .avatar.dim { filter: grayscale(1); opacity: .3; }

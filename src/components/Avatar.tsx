@@ -26,16 +26,18 @@ export function Avatar({ member, color, size = 40, dim, badge, onClick, title }:
       aria-label={`${member.name} ${member.party} 기록 파일 열기`}
     >
       <span className="avatar-face">
-      {!isFailed(src) ? (
-        <img
-          src={src!} alt={`${member.name} 의원 공식 사진`} loading="lazy" width={size} height={size}
-          referrerPolicy="no-referrer" onError={() => markPhotoFailed(src!)}
-        />
-      ) : (
+        {/* 이니셜을 항상 먼저 깔고, 사진은 실제로 도착했을 때만 위에 덮는다 (사진이 멈춰도 빈 원이 안 남음) */}
         <span className="avatar-initial" style={{ background: `color-mix(in srgb, ${color} 26%, #061423)` }}>
           {initial}
         </span>
-      )}
+        {!isFailed(src) && (
+          <img
+            src={src!} alt={`${member.name} 의원 공식 사진`} width={size} height={size}
+            referrerPolicy="no-referrer"
+            onLoad={(e) => e.currentTarget.classList.add('loaded')}
+            onError={() => markPhotoFailed(src!)}
+          />
+        )}
       </span>
       {badge && <em className={`avatar-badge${badge === '대표' ? ' lead' : badge === '공동' ? ' co' : ''}`}>{badge}</em>}
     </button>

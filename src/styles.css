@@ -545,8 +545,8 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 .lp-legend .dot.outline { border: 3px solid #e61e2b; background: #1b3446; }
 .lp-principles ul { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 28px; padding: 0; }
 .lp-principles li { padding: 22px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
-.lp-principles strong { display: block; margin-bottom: 8px; color: #fff; font-size: 19px; }
-.lp-principles span { color: #c3d6e2; font-size: 16px; line-height: 1.65; }
+.lp-principles li strong { display: block; margin-bottom: 8px; color: #fff; font-size: 19px; }
+.lp-principles li span { color: #c3d6e2; font-size: 16px; line-height: 1.65; }
 @media (max-width: 900px) {
   .landing-scroll { overflow: visible; }
   .lp-feed, .lp-principles ul { grid-template-columns: 1fr; }
@@ -821,8 +821,12 @@ body *::-webkit-scrollbar-thumb { background: rgba(71,151,190,.35); border-radiu
 /* 랜딩: 노모스 / 아고라 두 갈래 버튼 */
 .lp-cta-pair { display: flex; justify-content: center; flex-wrap: wrap; gap: 18px 28px; }
 .lp-cta-pair > div { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.lp-cta-lb { color: #8fdcf6; font-size: 15px; font-weight: 800; letter-spacing: 3px; }
+.lp-cta-lb { color: #8fdcf6; font-size: 15px; font-weight: 800; letter-spacing: 3px; padding-left: 3px; }
 .lp-cta-pair .hud-cta { min-width: 200px; justify-content: center; }
-.lp-principles .lp-cta-pair { justify-content: flex-start; }
+.lp-principles .lp-cta-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 300px)); justify-content: center; gap: 28px 40px; margin-top: 44px; }
+.lp-principles .lp-cta-pair > div { gap: 14px; }
+.lp-principles .lp-cta-lb { font-size: 18px; }
+.lp-principles .lp-cta-pair .hud-cta { width: 100%; padding: 20px 30px; font-size: 21px; }
+@media (max-width: 600px) { .lp-principles .lp-cta-pair { grid-template-columns: 1fr 1fr; gap: 16px; } .lp-principles .lp-cta-pair .hud-cta { padding: 16px 10px; font-size: 17px; min-width: 0; } }
 .lp-principles ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 900px) { .lp-principles ul { grid-template-columns: 1fr; } }

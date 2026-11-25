@@ -4,6 +4,7 @@ import { STAGE_SHORT, daysSince, fmtDate, fmtDateTime } from '../lib/format'
 import { HEMI_H, HEMI_W, hemicycleSeats } from '../lib/hemicycle'
 import { preloadPhotos } from '../lib/preload'
 import { Typewriter, type TypeBlock } from './Typewriter'
+import { useTrending } from './Agora'
 
 interface Props {
   meta: Meta | null
@@ -12,6 +13,7 @@ interface Props {
   partyColor: (p: string) => string
   onExplore: () => void
   onOpenBill: (id: string) => void
+  onOpenAgora: (id: string | null) => void
 }
 
 const PENDING = new Set(['proposed', 'committee', 'judiciary', 'plenary'])
@@ -40,7 +42,7 @@ const HERO: TypeBlock[] = [
   },
 ]
 
-export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) {
+export function Landing({ meta, bills, members, onExplore, onOpenBill, onOpenAgora }: Props) {
   const [typed, setTyped] = useState(false)
   // 의원 사진을 낮은 우선순위로 미리 받아 둠
   // 타이핑 연출이 끝난 뒤에 시작 (동시에 하면 글자가 멈칫거림)
@@ -93,6 +95,9 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) 
           </div>
         </div>
       </section>
+
+      {/* 2. 아고라 Top 5 (아고라 서버가 연결됐을 때만) */}
+      <AgoraTop bills={bills} onOpen={onOpenAgora} />
 
       {/* 3. 숫자로 보는 22대 국회 */}
       <section className="lp-section lp-stats-section">
@@ -191,11 +196,46 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) 
         <ul>
           <li><strong>국회 공식 기록만 사용합니다.</strong><span>모든 수치와 기록의 출처는 국회 열린국회정보(open.assembly.go.kr)이며, 평일 09~19시 매시간 자동으로 갱신됩니다.</span></li>
           <li><strong>요약하거나 평가하지 않습니다.</strong><span>법안 내용을 해석하거나 의원을 평가하지 않습니다. 판단은 이용자의 몫입니다.</span></li>
-          <li><strong>개인정보를 수집하지 않습니다.</strong><span>회원가입·로그인·방문 분석·광고 추적 도구를 사용하지 않습니다.</span></li>
+          <li><strong>개인정보를 수집하지 않습니다.</strong><span>회원가입·로그인·방문 분석·광고 추적 도구를 사용하지 않습니다. 아고라 찬반에는 봇 방지를 위해 Cloudflare 보안 확인만 쓰며, 원본 IP를 저장하지 않고 누가 투표했는지 알 수 없게 처리합니다.</span></li>
         </ul>
         <HudButton onClick={onExplore}>법안 둘러보기</HudButton>
       </section>
     </div>
+  )
+}
+
+/** 최근 24시간 찬반 참여가 많은 법안 Top 5 — 결과(찬반 비율)는 투표한 사람에게만 보이므로 참여 수만 */
+function AgoraTop({ bills, onOpen }: { bills: BillIndexItem[]; onOpen: (id: string | null) => void }) {
+  const trending = useTrending()
+  const byId = useMemo(() => new Map(bills.map((b) => [b.id, b])), [bills])
+  if (!trending) return null
+  const list = trending.filter((x) => byId.has(x.id)).slice(0, 5)
+  return (
+    <section className="lp-section lp-agora">
+      <h2>지금 아고라에서 뜨거운 법안</h2>
+      <p className="lp-sub">최근 24시간 찬반 투표 수(찬성+반대) 기준 · 결과는 투표한 뒤에 볼 수 있어요</p>
+      {list.length === 0 ? (
+        <div className="lp-agora-empty">
+          <p>아직 오늘의 참여가 없어요. 첫 번째 한 표를 남겨 보세요.</p>
+          <button className="ghost-btn" onClick={() => onOpen(null)}>아고라로 가기 →</button>
+        </div>
+      ) : (
+        <ol className="lp-top5">
+          {list.map((x, i) => {
+            const b = byId.get(x.id)!
+            return (
+              <li key={x.id}>
+                <button onClick={() => onOpen(x.id)}>
+                  <b className="rk">{i + 1}</b>
+                  <span className="t">{b.title}</span>
+                  <span className="c">{x.count.toLocaleString()}<small>표</small></span>
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </section>
   )
 }
 

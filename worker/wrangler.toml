@@ -1,0 +1,12 @@
+name = "nomos-agora-interest"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://nomos-agora-kr.github.io,http://localhost:5173,http://localhost:4173,http://localhost:4175"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nomos-agora"
+database_id = "LOCAL_PLACEHOLDER" # 배포 워크플로가 실제 ID 로 채움

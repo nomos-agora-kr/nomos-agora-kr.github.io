@@ -15,6 +15,7 @@ interface Props {
   committees: Committee[]
   onSelect: (m: Member) => void
   selectedId: string | null
+  onAgora: () => void
 }
 
 const CO_PREVIEW = 23
@@ -30,7 +31,7 @@ const PROPOSE_STATUSES: StatusDef[] = [
   { key: 'none', label: '그 외', color: '#1b3446', vivid: false },
 ]
 
-export function BillView({ billId, members, byId, parties, partyColor, committees, onSelect, selectedId }: Props) {
+export function BillView({ billId, members, byId, parties, partyColor, committees, onSelect, selectedId, onAgora }: Props) {
   const [bill, setBill] = useState<BillDetail | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [zoomOut, setZoomOut] = useState(false)
@@ -74,7 +75,10 @@ export function BillView({ billId, members, byId, parties, partyColor, committee
       <header className="hud-panel bill-head">
         <div className="bill-head-top">
           <span className="card-overline">의안번호 {bill.no} · {bill.committee ?? '소관위 미정'}</span>
-          {bill.link && <a className="ext-link" href={bill.link} target="_blank" rel="noreferrer">의안정보시스템 원문 ↗</a>}
+          <div className="bill-head-actions">
+            <button className="agora-link" onClick={onAgora}>아고라에서 찬반 보기 →</button>
+            {bill.link && <a className="ext-link" href={bill.link} target="_blank" rel="noreferrer">의안정보시스템 원문 ↗</a>}
+          </div>
         </div>
         <h1>{bill.title}</h1>
         {bill.summary && <p className="plain">{bill.summary}</p>}

@@ -66,8 +66,12 @@ function pump() {
       else markPhotoFailed(src)
       idle(pump)
     }
-    img.onload = () => finish(true)
-    img.onerror = () => finish(false)
+    // 응답이 끝없이 늦어지는 사진은 20초에 실패로 확정 → 연출이 무한히 기다리지 않음 (이니셜로 표시)
+    let settledOnce = false
+    const once = (ok: boolean) => { if (settledOnce) return; settledOnce = true; clearTimeout(timer); finish(ok) }
+    const timer = setTimeout(() => once(false), 20000)
+    img.onload = () => once(true)
+    img.onerror = () => once(false)
     img.src = src
   }
 }

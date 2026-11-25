@@ -3,14 +3,18 @@ import { useEffect, useState } from 'react'
 /**
  * 해시 라우트 — 정적 호스팅에서 새로고침/공유 링크 안전
  *   #/                    랜딩
- *   #/explore             대시보드 (본회의장 전체)
- *   #/bill/{id}           대시보드 + 법안
+ *   #/explore             노모스 (법안 기록) — 본회의장 전체
+ *   #/bill/{id}           노모스 + 법안
+ *   #/agora               아고라 (찬반 현황) — 참여 많은 법안
+ *   #/agora/{id}          아고라 + 법안 찬반
  *   ...?m={mona}          의원 기록 파일 열기 (어느 화면에서든)
  */
 export type View = 'landing' | 'explore'
+export type Tab = 'nomos' | 'agora'
 
 export interface Route {
   view: View
+  tab: Tab
   bill: string | null
   member: string | null
 }
@@ -20,9 +24,11 @@ function parse(): Route {
   const [path, q = ''] = h.split('?')
   const parts = path.split('/').filter(Boolean)
   const params = new URLSearchParams(q)
-  const bill = parts[0] === 'bill' && parts[1] ? decodeURIComponent(parts[1]) : null
+  const agora = parts[0] === 'agora'
+  const bill = (parts[0] === 'bill' || agora) && parts[1] ? decodeURIComponent(parts[1]) : null
   return {
-    view: bill || parts[0] === 'explore' ? 'explore' : 'landing',
+    view: bill || agora || parts[0] === 'explore' ? 'explore' : 'landing',
+    tab: agora ? 'agora' : 'nomos',
     bill,
     member: params.get('m'),
   }
@@ -41,9 +47,11 @@ export function useRoute(): Route {
 export function navigate(next: Partial<Route>) {
   const cur = parse()
   const r = { ...cur, ...next }
-  if (next.bill) r.view = 'explore'
+  if (next.bill || next.tab) r.view = 'explore'
+  if (r.view === 'landing') r.tab = 'nomos'
   const q = r.member ? `?m=${encodeURIComponent(r.member)}` : ''
-  window.location.hash = r.bill
-    ? `/bill/${encodeURIComponent(r.bill)}${q}`
-    : r.view === 'explore' ? `/explore${q}` : `/${q}`
+  const id = r.bill ? `/${encodeURIComponent(r.bill)}` : ''
+  window.location.hash = r.view === 'landing'
+    ? `/${q}`
+    : r.tab === 'agora' ? `/agora${id}${q}` : r.bill ? `/bill${id}${q}` : `/explore${q}`
 }

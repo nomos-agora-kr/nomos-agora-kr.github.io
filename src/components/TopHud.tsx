@@ -13,11 +13,15 @@ interface Props {
   onOpenMember: (m: Member) => void
   onDistrict: (ids: string[], label: string) => void
   onHome: () => void
+  /** 지금 보고 있는 화면 (랜딩이면 null) */
+  tab: 'nomos' | 'agora' | null
+  onTab: (t: 'nomos' | 'agora') => void
+  onReset: () => void
 }
 
 const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase()
 
-export function TopHud({ meta, total, pending, bills, members, partyColor, onOpenBill, onOpenMember, onDistrict, onHome }: Props) {
+export function TopHud({ meta, total, pending, bills, members, partyColor, onOpenBill, onOpenMember, onDistrict, onHome, tab, onTab, onReset }: Props) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [distOpen, setDistOpen] = useState(false)
@@ -62,10 +66,25 @@ export function TopHud({ meta, total, pending, bills, members, partyColor, onOpe
         </span>
       </button>
 
+      <nav className="mode-tabs" aria-label="화면 전환">
+        <button className={tab === 'nomos' ? 'active' : ''} aria-current={tab === 'nomos' ? 'page' : undefined} onClick={() => onTab('nomos')}>
+          <strong>노모스</strong><small>법안 기록</small>
+        </button>
+        <button className={tab === 'agora' ? 'active' : ''} aria-current={tab === 'agora' ? 'page' : undefined} onClick={() => onTab('agora')}>
+          <strong>아고라</strong><small>찬반 현황</small>
+        </button>
+      </nav>
+
       <div className="hud-stats" aria-label="실시간 현황">
         <div><span>{meta?.age ?? 22}대 발의 법안</span><b>{total.toLocaleString()}</b></div>
         <div><span>계류 중</span><b>{pending.toLocaleString()}</b></div>
         <div><span>마지막 갱신</span><b>{meta ? fmtDateTime(meta.updated) : '—'}</b></div>
+        <button className="reset-btn" onClick={onReset} aria-label="본회의장 첫 화면으로" title="본회의장 첫 화면으로">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+            <path d="M19.6 12.4A7.6 7.6 0 1 1 16.9 6.2" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+            <path d="M13.2 4.9l4.3 1.4-1.5 4.2" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
 
       <div className="top-navigation-tools">

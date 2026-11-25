@@ -27,20 +27,18 @@ interface Props {
   statuses?: StatusDef[]
   onSelect: (m: Member) => void
   selectedId?: string | null
-  defaultMode?: 'dot' | 'profile'
   defaultGroup?: GroupBy
 }
 
 type GroupBy = 'party' | 'committee' | 'status'
 
 export function SeatMap({
-  members, parties, partyColor, committees, statusOf, statuses, onSelect, selectedId, defaultMode = 'dot', defaultGroup = 'party',
+  members, parties, partyColor, committees, statusOf, statuses, onSelect, selectedId, defaultGroup = 'party',
 }: Props) {
-  const [mode, setMode] = useState<'dot' | 'profile'>(defaultMode)
-  // 프로필 보기 연출: 들어올 때마다 스캔부터 다시
+  // 프로필 보기만 사용. 화면에 들어올 때마다 스캔 연출부터 시작
+  const mode = 'profile' as const
   const [photoPhase, setPhotoPhase] = useState<'scan' | 'show'>('scan')
-  const [runId, setRunId] = useState(0)
-  const enterProfile = () => { setScanProgress(0); setPhotoPhase('scan'); setRunId((n) => n + 1); setMode('profile') }
+  useState(() => setScanProgress(0))
   const [groupBy, setGroupBy] = useState<GroupBy>(statusOf ? defaultGroup : 'party')
   const statusMap = useMemo(() => new Map((statuses ?? []).map((s) => [s.key, s])), [statuses])
 
@@ -86,22 +84,19 @@ export function SeatMap({
   }, [statusOf, statusMap])
   const statusLabel = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.label ?? null : null), [statusOf, statusMap])
 
-  // 프로필 보기 수신 게이지: 사진으로 보여 줄 의원 기준
+  // 수신 게이지: 사진으로 보여 줄 의원 기준
   const targets = useMemo(
-    () => (mode === 'profile' ? members.filter((m) => !isDim(m)).map((m) => photoSrc(m.photo)).filter(Boolean) as string[] : []),
-    [mode, members, isDim],
+    () => members.filter((m) => !isDim(m)).map((m) => photoSrc(m.photo)).filter(Boolean) as string[],
+    [members, isDim],
   )
+  const reveal = useCallback(() => setPhotoPhase('show'), [])
   // 프로필 보기에 필요한 사진을 큐 맨 앞으로 (좌석은 받아진 사진만 붙임)
   useEffect(() => { if (targets.length) prefetchPhotosNow(targets) }, [targets])
   return (
     <div className="seatmap">
       <div className="seatmap-tools">
         <div className="seatmap-left">
-        <div className="seg" role="group" aria-label="보기 모드">
-          <button className={mode === 'dot' ? 'active' : ''} onClick={() => setMode('dot')}>간략히 보기</button>
-          <button className={mode === 'profile' ? 'active' : ''} onClick={() => mode !== 'profile' && enterProfile()}>프로필 보기</button>
-        </div>
-        {mode === 'profile' && <LoadGauge key={`${runId}-${targets.length}`} targets={targets} onReveal={() => setPhotoPhase('show')} />}
+          <LoadGauge key={targets.length} targets={targets} onReveal={reveal} />
         </div>
         <div className="seg" role="group" aria-label="재정렬">
           <button className={groupBy === 'party' ? 'active' : ''} onClick={() => setGroupBy('party')}>정당별</button>
@@ -123,7 +118,7 @@ export function SeatMap({
           ))}
         </ul>
         <p className="hint legend-note">
-          점 테두리 색 = 정당{mode === 'profile' && ` · 프로필 보기는 ${statuses.filter((x) => x.vivid).map((x) => x.label).join('·')}만 사진으로 표시${statuses.some((x) => x.halo) ? ' (오렌지 테두리 = 대표발의)' : ''}`}
+          테두리 색 = 정당 · {statuses.filter((x) => x.vivid).map((x) => x.label).join('·')}만 사진으로 표시{statuses.some((x) => x.halo) ? ' (오렌지 테두리 = 대표발의)' : ''}
         </p>
         </>
       )}
@@ -147,11 +142,13 @@ export function SeatMap({
 }
 
 const MIN_SCAN_MS = 2800 // 미리 받아져 있어도 이만큼은 '받는 중'으로 보여 줌
-const MAX_SCAN_MS = 12000 // 사진이 끝내 안 와도 이 시간이 지나면 받은 것까지만 공개
+// 모든 사진이 '그릴 준비(썸네일 완성 또는 실패 확정)'가 될 때까지 기다림.
+// 사진 한 장은 최대 20초면 성공/실패가 정해지므로(preload.ts), 이 값은 비상용 안전장치
+const MAX_SCAN_MS = 45000
 
 /**
  * 프로필 수신 게이지 + 연출 진행
- * 표시 수 = min(실제 도착 수, 시간에 비례한 수) → 일정한 속도로 차오르고, 다 차면 한 번에 공개
+ * 표시 수 = min(준비된 사진 수, 시간에 비례한 수) → 일정한 속도로 차오르고, 전부 준비되면 한 번에 공개
  * 도착 알림·매 프레임 갱신은 이 작은 컴포넌트만 받음 (좌석도는 공개 순간 한 번만 다시 그림)
  */
 function LoadGauge({ targets, onReveal }: { targets: string[]; onReveal: () => void }) {

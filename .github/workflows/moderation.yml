@@ -1,0 +1,75 @@
+# 한 줄 의견 검토 (수동 실행 전용)
+#  - report : 신고됐거나 자동 숨김된 의견 목록을 실행 요약(Summary)에 표로 남김
+#  - delete : 확인한 의견 번호들을 영구 삭제
+#  - restore: 잘못 숨겨진 의견을 다시 보이게 함 (이후 신고로 다시 숨겨지지 않음)
+# Cloudflare 토큰은 GitHub Secrets 안에서만 쓰임
+name: moderation
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "report = 검토 목록 / delete = 삭제 / restore = 복구"
+        type: choice
+        options: [report, delete, restore]
+        default: report
+      ids:
+        description: "delete·restore 대상 의견 번호 (쉼표로 구분, 예: 12,15,31)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: moderation
+  cancel-in-progress: false
+
+jobs:
+  moderate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ACTION: ${{ inputs.action }}
+      IDS: ${{ inputs.ids }}
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - name: Run
+        run: |
+          set -euo pipefail
+          DB_ID=$(npx wrangler d1 list --json | jq -r '.[] | select(.name=="nomos-agora") | .uuid')
+          test -n "$DB_ID"
+          sed -i "s/LOCAL_PLACEHOLDER/$DB_ID/" wrangler.toml
+          q() { npx wrangler d1 execute nomos-agora --remote --json --command "$1"; }
+          if [ "$ACTION" = "report" ]; then
+            q "SELECT id, bill_id, side, text, reports, hidden, reviewed, datetime(ts/1000, 'unixepoch', '+9 hours') AS kst FROM opinions WHERE reports > 0 OR hidden = 1 ORDER BY hidden DESC, reports DESC, ts DESC LIMIT 300" > report.json
+            {
+              echo "## 한 줄 의견 검토 목록"
+              echo
+              echo "| 번호 | 상태 | 신고 | 찬반 | 의견 | 법안 | 작성(KST) |"
+              echo "|---:|---|---:|---|---|---|---|"
+              jq -r '.[0].results[] | "| \(.id) | \(if .hidden == 1 then "숨김(확인 대기)" elif .reviewed == 1 then "복구됨" else "보임" end) | \(.reports) | \(if .side == "Y" then "찬성" else "반대" end) | \(.text | gsub("\\|"; "/")) | \(.bill_id) | \(.kst) |"' report.json
+              echo
+              echo "총 $(jq '.[0].results | length' report.json)건"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "--- REPORT JSON ---"
+            jq -c '.[0].results[]' report.json
+            exit 0
+          fi
+          CLEAN=$(echo "$IDS" | tr -d ' ')
+          if ! echo "$CLEAN" | grep -Eq '^[0-9]+(,[0-9]+)*$'; then echo "ids 형식 오류: 숫자와 쉼표만"; exit 1; fi
+          if [ "$ACTION" = "delete" ]; then
+            q "DELETE FROM opinions WHERE id IN ($CLEAN)"
+          else
+            q "UPDATE opinions SET hidden = 0, reviewed = 1 WHERE id IN ($CLEAN)"
+          fi
+          echo "$ACTION 완료: $CLEAN" | tee -a "$GITHUB_STEP_SUMMARY"

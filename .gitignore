@@ -3,3 +3,5 @@ dist
 .env
 __pycache__
 .cache
+.wrangler
+worker/deploy.log

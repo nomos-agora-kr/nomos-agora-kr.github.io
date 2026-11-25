@@ -10,6 +10,7 @@ import { BillView } from './components/BillView'
 import { Dossier } from './components/Dossier'
 import { SeatMap, type StatusDef } from './components/SeatMap'
 import { Landing } from './components/Landing'
+import { AgoraBill, AgoraHome } from './components/Agora'
 
 const HL_STATUSES: StatusDef[] = [
   { key: 'hl', label: '검색한 지역구', color: '#e9f6ff', vivid: true },
@@ -56,11 +57,17 @@ export default function App() {
 
   const openMember = useCallback((m: Member) => navigate({ member: m.id }), [])
   const closeMember = useCallback(() => navigate({ member: null }), [])
+  const scrollTop = () => {
+    document.querySelector('.main-stage')?.scrollTo({ top: 0 })
+    window.scrollTo({ top: 0 })
+  }
   const openBill = useCallback((id: string) => {
     navigate({ bill: id, member: null })
     document.querySelector('.main-stage')?.scrollTo({ top: 0 })
     window.scrollTo({ top: 0 })
   }, [])
+  const switchTab = useCallback((tab: 'nomos' | 'agora') => { navigate({ tab, member: null }); scrollTop() }, [])
+  const billIndex = useMemo(() => new Map((bf?.bills ?? []).map((b) => [b.id, b])), [bf])
 
   if (error) {
     return (
@@ -85,6 +92,9 @@ export default function App() {
         onOpenMember={openMember}
         onDistrict={(ids, label) => { setHighlight({ ids: new Set(ids), label }); navigate({ view: 'explore', bill: null, member: null }) }}
         onHome={() => { setHighlight(null); navigate({ view: 'landing', bill: null, member: null }) }}
+        tab={route.view === 'explore' ? route.tab : null}
+        onTab={switchTab}
+        onReset={() => { setHighlight(null); navigate({ view: 'explore', tab: 'nomos', bill: null, member: null }); scrollTop() }}
       />
       {meta?.sample && (
         <div className="sample-banner" role="note">
@@ -99,12 +109,11 @@ export default function App() {
             bills={bf?.bills ?? []}
             members={members}
             partyColor={partyColor}
-            onExplore={() => navigate({ view: 'explore', bill: null })}
-            onOpenBill={openBill}
+            onExplore={() => navigate({ view: 'explore', tab: 'nomos', bill: null })}
+            onOpenBill={(id) => { navigate({ tab: 'nomos', bill: id, member: null }); scrollTop() }}
+            onOpenAgora={(id) => { navigate(id ? { tab: 'agora', bill: id, member: null } : { tab: 'agora', bill: null, member: null }); scrollTop() }}
           />
-          <footer className="source-line">
-            출처: 열린국회정보(open.assembly.go.kr) · 본 사이트는 평가 없이 공개된 국회 공식 기록을 그대로 보여줍니다.
-          </footer>
+          <SiteFooter />
         </main>
       ) : (
       <div className="workspace">
@@ -113,6 +122,10 @@ export default function App() {
         <main className="main-stage">
           {!mf || !cf || !bf ? (
             <div className="hud-panel empty-state">불러오는 중…</div>
+          ) : route.tab === 'agora' ? (
+            route.bill
+              ? <AgoraBill billId={route.bill} bill={billIndex.get(route.bill)} onNomos={() => switchTab('nomos')} />
+              : <AgoraHome bills={bf.bills} onOpen={openBill} />
           ) : route.bill ? (
             <BillView
               billId={route.bill}
@@ -123,6 +136,7 @@ export default function App() {
               committees={cf.committees}
               onSelect={openMember}
               selectedId={route.member}
+              onAgora={() => switchTab('agora')}
             />
           ) : (
             <section className="overview">
@@ -147,21 +161,28 @@ export default function App() {
                   committees={cf.committees}
                   statusOf={highlight ? (m) => (highlight.ids.has(m.id) ? 'hl' : 'none') : undefined}
                   statuses={highlight ? HL_STATUSES : undefined}
-                  defaultMode={highlight ? 'profile' : 'dot'}
                   onSelect={openMember}
                   selectedId={route.member}
                 />
               </div>
             </section>
           )}
-          <footer className="source-line">
-            출처: 열린국회정보(open.assembly.go.kr) · 본 사이트는 평가 없이 공개된 국회 공식 기록을 그대로 보여줍니다.
-          </footer>
+          <SiteFooter />
         </main>
       </div>
       )}
 
       <Dossier member={selectedMember} partyColor={partyColor} onClose={closeMember} onOpenBill={openBill} />
     </div>
+  )
+}
+
+const CONTACT = 'nomosagora.kr@gmail.com'
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <p>출처: 열린국회정보(open.assembly.go.kr) · 본 사이트는 평가 없이 공개된 국회 공식 기록을 그대로 보여줍니다.</p>
+      <p>신고·건의 <a href={`mailto:${CONTACT}`}>{CONTACT}</a></p>
+    </footer>
   )
 }

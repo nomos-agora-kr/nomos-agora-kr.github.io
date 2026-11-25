@@ -179,11 +179,11 @@ function LoadGauge({ targets, onReveal }: { targets: string[]; onReveal: () => v
     if (phase !== 'loading' || total === 0 || shown < total) return
     setPhase('done')
     onReveal()
-    const t = setTimeout(() => setPhase('hidden'), 1400)
+    const t = setTimeout(() => setPhase('hidden'), 450)
     return () => clearTimeout(t)
   }, [phase, shown, total, onReveal])
 
-  if (total === 0) return null
+  if (total === 0 || phase === 'hidden') return null
   return (
     <div className={`load-gauge ${phase}`} role="status" aria-live="polite">
       <span className="lb">{phase === 'loading' ? '프로필 수신 중' : '수신 완료'}</span>

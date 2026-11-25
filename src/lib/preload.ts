@@ -9,17 +9,29 @@ import { THUMB, markPhotoFailed, markPhotoLoaded, photoSrc, setThumb } from './p
  */
 const done = new Set<string>()
 
-function makeThumb(src: string, img: HTMLImageElement) {
+/**
+ * 원본 → 72×72 썸네일. 해독·축소를 브라우저 백그라운드(createImageBitmap)에서 처리해
+ * 화면 작업(타이핑·애니메이션)을 막지 않음. 지원하지 않는 브라우저만 기존 방식.
+ */
+async function makeThumb(src: string, img: HTMLImageElement): Promise<boolean> {
   const w = img.naturalWidth, h = img.naturalHeight
-  if (!w || !h) return
+  if (!w || !h) return false
+  const side = Math.min(w, h)
+  const sx = (w - side) / 2, sy = (h - side) * 0.12 // 얼굴이 있는 위쪽 기준 정사각형
   const c = document.createElement('canvas')
   c.width = c.height = THUMB
   const ctx = c.getContext('2d')
-  if (!ctx) return
-  const side = Math.min(w, h)
-  // 세로로 긴 증명사진 → 얼굴이 있는 위쪽 기준으로 정사각형 자르기
-  ctx.drawImage(img, (w - side) / 2, (h - side) * 0.12, side, side, 0, 0, THUMB, THUMB)
+  if (!ctx) return false
+  try {
+    await img.decode() // 해독은 브라우저 백그라운드 스레드에서
+    const bmp = await createImageBitmap(img, sx, sy, side, side, { resizeWidth: THUMB, resizeHeight: THUMB, resizeQuality: 'high' })
+    ctx.drawImage(bmp, 0, 0)
+    bmp.close()
+  } catch {
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, THUMB, THUMB)
+  }
   setThumb(src, c)
+  return true
 }
 const inflight = new Set<string>()
 let queue: string[] = []
@@ -44,14 +56,15 @@ function pump() {
     let img: HTMLImageElement | null = new Image()
     img.referrerPolicy = 'no-referrer'
     img.decoding = 'async'
-    const finish = (ok: boolean) => {
+    const finish = async (ok: boolean) => {
+      const el = img
+      if (img) { img.onload = img.onerror = null; img = null }
+      if (ok && el) ok = await makeThumb(src, el)
       inflight.delete(src)
       done.add(src)
-      if (ok && img) makeThumb(src, img)
       if (ok) markPhotoLoaded(src)
       else markPhotoFailed(src)
-      if (img) { img.onload = img.onerror = null; img = null }
-      pump()
+      idle(pump)
     }
     img.onload = () => finish(true)
     img.onerror = () => finish(false)

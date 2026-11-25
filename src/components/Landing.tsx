@@ -42,8 +42,9 @@ const HERO: TypeBlock[] = [
 
 export function Landing({ meta, bills, members, onExplore, onOpenBill }: Props) {
   const [typed, setTyped] = useState(false)
-  // 랜딩 진입 시점부터 의원 사진을 낮은 우선순위로 미리 받아 둠
-  useEffect(() => { if (members.length) preloadPhotos(members.map((m) => m.photo)) }, [members])
+  // 의원 사진을 낮은 우선순위로 미리 받아 둠
+  // 타이핑 연출이 끝난 뒤에 시작 (동시에 하면 글자가 멈칫거림)
+  useEffect(() => { if (typed && members.length) preloadPhotos(members.map((m) => m.photo)) }, [typed, members])
 
   const ref = refDate(meta)
   const since = (iso: string) => ref.getTime() - new Date(`${iso}T00:00:00+09:00`).getTime()

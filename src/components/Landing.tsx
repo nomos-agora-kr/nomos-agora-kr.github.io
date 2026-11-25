@@ -33,13 +33,6 @@ const HERO: TypeBlock[] = [
       [{ text: '역사', accent: true }, { text: '에 남습니다.' }],
     ],
   },
-  {
-    tag: 'p', className: 'lp-lead', speed: 95,
-    lines: [
-      [{ text: '국회의원이 어떤 법안을 내고, 누가 심사하고, 어떻게 표결했는지' }],
-      [{ text: '국회 공식 기록 그대로 보여 드립니다.' }],
-    ],
-  },
 ]
 
 export function Landing({ meta, bills, members, onExplore, onOpenBill, onOpenAgora }: Props) {
@@ -90,7 +83,12 @@ export function Landing({ meta, bills, members, onExplore, onOpenBill, onOpenAgo
         </svg>
         <div className="lp-hero-text">
           <Typewriter blocks={HERO} onDone={() => setTyped(true)} />
-          <div className={`lp-cta-wrap${typed ? ' show' : ''}`}>
+          {/* 제목 타이핑이 끝나면 설명 → 버튼 순으로 아래에서 떠오름 */}
+          <p className={`lp-lead lp-rise${typed ? ' show' : ''}`}>
+            <span className="tw-line">국회의원이 어떤 법안을 내고, 누가 심사하고, 어떻게 표결했는지</span>
+            <span className="tw-line">국회 공식 기록 그대로 보여 드립니다.</span>
+          </p>
+          <div className={`lp-cta-wrap lp-rise later${typed ? ' show' : ''}`}>
             <div className="lp-cta-pair">
               <div><span className="lp-cta-lb">노모스</span><HudButton onClick={onExplore}>법안 둘러보기</HudButton></div>
               <div><span className="lp-cta-lb">아고라</span><HudButton onClick={() => onOpenAgora(null)}>찬반 현황 보기</HudButton></div>

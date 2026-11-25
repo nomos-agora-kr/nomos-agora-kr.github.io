@@ -9,7 +9,9 @@ export interface StatusDef {
   /** 프로필 보기에서 사진을 보여줄지 */
   vivid: boolean
   /** 간략히 보기 점 모양 (기본 fill) */
-  style?: 'fill' | 'ring' 
+  style?: 'fill' | 'ring'
+  /** 프로필 보기에서 사진에 이 색 테두리를 한 겹 더 (대표발의 구분용) */
+  halo?: boolean
 }
 
 interface Props {
@@ -71,6 +73,10 @@ export function SeatMap({
   )
   const isDim = useCallback((m: Member) => (statusOf ? !statusMap.get(statusOf(m))?.vivid : false), [statusOf, statusMap])
   const dotStyle = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.style ?? 'fill' : 'fill'), [statusOf, statusMap])
+  const haloOf = useCallback((m: Member) => {
+    const st = statusOf ? statusMap.get(statusOf(m)) : undefined
+    return st?.halo ? st.color : undefined
+  }, [statusOf, statusMap])
   const statusLabel = useCallback((m: Member) => (statusOf ? statusMap.get(statusOf(m))?.label ?? null : null), [statusOf, statusMap])
 
   return (
@@ -90,7 +96,7 @@ export function SeatMap({
           )}
         </div>
       </div>
-      {statusOf && statuses && mode === 'dot' && (
+      {statusOf && statuses && (
         <>
         <ul className="status-legend">
           {statuses.map((s) => (
@@ -99,7 +105,9 @@ export function SeatMap({
               {s.label}<b>{members.filter((m) => statusOf(m) === s.key).length}</b></li>
           ))}
         </ul>
-        <p className="hint legend-note">점 테두리 색 = 정당</p>
+        <p className="hint legend-note">
+          점 테두리 색 = 정당{mode === 'profile' && ` · 프로필 보기는 ${statuses.filter((x) => x.vivid).map((x) => x.label).join('·')}만 사진으로 표시${statuses.some((x) => x.halo) ? ' (오렌지 테두리 = 대표발의)' : ''}`}
+        </p>
         </>
       )}
       <Hemicycle
@@ -111,13 +119,11 @@ export function SeatMap({
         partyColor={partyColor}
         statusLabel={statusLabel}
         dotStyle={dotStyle}
+        haloOf={haloOf}
         onSelect={onSelect}
         selectedId={selectedId}
         mode={mode}
       />
-      {mode === 'profile' && statusOf && (
-        <p className="hint">사진 = {statuses?.filter((s) => s.vivid).map((s) => s.label).join('·')} · 작은 점 = 그 외. 외곽선 색은 정당입니다.</p>
-      )}
     </div>
   )
 }

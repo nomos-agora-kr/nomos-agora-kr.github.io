@@ -22,13 +22,15 @@ interface Props {
   statusLabel?: (m: Member) => string | null
   /** 간략히 보기 점 모양: fill(칠함) / ring(속 빈 원). 기본 fill */
   dotStyle?: (m: Member) => 'fill' | 'ring'
+  /** 프로필 보기에서 사진 바깥에 두를 강조 테두리 색 (예: 대표발의 = 오렌지) */
+  haloOf?: (m: Member) => string | undefined
   onSelect: (m: Member) => void
   selectedId?: string | null
   mode: 'dot' | 'profile'
 }
 
 export function Hemicycle({
-  members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, dotStyle, onSelect, selectedId, mode,
+  members, groupOf, groups, dotColor, isDim, partyColor, statusLabel, dotStyle, haloOf, onSelect, selectedId, mode,
 }: Props) {
   const [hover, setHover] = useState<number | null>(null)
 
@@ -85,7 +87,9 @@ export function Hemicycle({
                 {mode === 'dot' ? (
                   <Dot r={s.r} fill={dotColor(m)} party={partyColor(m.party)} ring={dotStyle?.(m) === 'ring'} dim={dim} selected={sel} />
                 ) : (
-                  <SeatFace m={m} r={s.r} dim={dim} border={partyColor(m.party)} />
+                  dim
+                    ? <Dot r={s.r} fill={dotColor(m)} party={partyColor(m.party)} ring={dotStyle?.(m) === 'ring'} dim selected={sel} />
+                    : <SeatFace m={m} r={s.r} border={partyColor(m.party)} halo={haloOf?.(m)} />
                 )}
               </g>
             )
@@ -97,7 +101,9 @@ export function Hemicycle({
               {mode === 'dot' ? (
                 <Dot r={r} fill={dotColor(h.m)} party={partyColor(h.m.party)} ring={dotStyle?.(h.m) === 'ring'} dim={false} selected />
               ) : (
-                <SeatFace m={h.m} r={r} dim={isDim(h.m)} border={partyColor(h.m.party)} />
+                isDim(h.m)
+                  ? <Dot r={r} fill={dotColor(h.m)} party={partyColor(h.m.party)} ring={dotStyle?.(h.m) === 'ring'} dim={false} selected />
+                  : <SeatFace m={h.m} r={r} border={partyColor(h.m.party)} halo={haloOf?.(h.m)} />
               )}
             </g>
           )}
@@ -142,12 +148,8 @@ function Dot({ r, fill, party, ring, dim, selected }: { r: number; fill: string;
   )
 }
 
-function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; border: string }) {
+function SeatFace({ m, r, border, halo }: { m: Member; r: number; border: string; halo?: string }) {
   const isFailed = usePhotoFailures()
-  // 관련 없는 의원(dim)은 사진을 불러오지 않고 정당색 점으로만 표시 → 요청·렌더링 부담 감소
-  if (dim) {
-    return <circle r={r * 0.72} fill="#0d1c28" stroke={border} strokeWidth={Math.max(1.2, r * 0.18)} opacity={0.55} />
-  }
   const initial = m.name.slice(1, 2) || m.name.slice(0, 1)
   const src = photoSrc(m.photo)
   return (
@@ -164,6 +166,7 @@ function SeatFace({ m, r, dim, border }: { m: Member; r: number; dim: boolean; b
         />
       )}
       <circle r={r} fill="none" stroke={border} strokeWidth={Math.max(1.4, r * 0.2)} />
+      {halo && <circle r={r * 1.24} fill="none" stroke={halo} strokeWidth={Math.max(1.6, r * 0.26)} />}
     </g>
   )
 }

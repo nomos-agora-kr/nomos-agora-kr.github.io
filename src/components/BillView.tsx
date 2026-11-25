@@ -24,7 +24,7 @@ const VOTE_STATUSES: StatusDef[] = (['Y', 'N', 'A', 'X'] as const).map((k) => ({
 }))
 const PROPOSE_STATUSES: StatusDef[] = [
   // 배지 색과 동일: 대표 = 오렌지, 공동 = 흰색. 칠해진 점 = 발의자
-  { key: 'lead', label: '대표발의', color: '#ff8a4c', vivid: true },
+  { key: 'lead', label: '대표발의', color: '#ff8a4c', vivid: true, halo: true },
   { key: 'co', label: '공동발의', color: '#ffffff', vivid: true },
   { key: 'cmt', label: '소관위 위원 (심사)', color: '#8fb6cc', vivid: false, style: 'ring' },
   { key: 'none', label: '그 외', color: '#1b3446', vivid: false },
